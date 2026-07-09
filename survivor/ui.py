@@ -44,7 +44,17 @@ st.set_page_config(
     layout="wide",
 )
 
-state = state_mod.load_state()
+# Load state defensively — a malformed/empty season_state.json on a fresh host
+# should not produce a blank page. Fall back to a clean default and say so.
+try:
+    state = state_mod.load_state()
+    if "entries" not in state or not state["entries"]:
+        raise ValueError("no entries in state")
+except Exception as ex:
+    st.warning(f"Could not load season_state.json ({ex}); using a fresh default state.")
+    import copy as _copy
+    state = _copy.deepcopy(state_mod.DEFAULT_STATE)
+
 loaded_legs = [lid for lid in sched.LEG_ORDER if lid in sched.SCHEDULE]
 entry_ids = sorted(state["entries"].keys())
 
@@ -55,13 +65,21 @@ entry_ids = sorted(state["entries"].keys())
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _game_meta(year, leg_id):
-    return ingest_lines.fetch_game_meta(year, leg_id)
+    # Never let an ESPN hiccup (slow/blocked from the host) blank the page:
+    # this runs at load time, before the header/tabs render.
+    try:
+        return ingest_lines.fetch_game_meta(year, leg_id)
+    except Exception:
+        return {}
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def _season_records(year):
     """Live W/L records from ESPN standings. Empty dict until games start."""
-    return ingest_results.fetch_records(year)
+    try:
+        return ingest_results.fetch_records(year)
+    except Exception:
+        return {}
 
 
 RECORDS = _season_records(2026)
