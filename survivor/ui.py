@@ -92,7 +92,12 @@ with st.sidebar:
             st.rerun()
 
     with st.expander("⚙ Advanced (solver dials)"):
-        horizon = st.slider("Horizon (weeks committed)", 1, 5, 2)
+        horizon = st.slider(
+            "Horizon (weeks planned)", 1, 17, 2,
+            help="How many upcoming weeks get provisional picks. 2 = near-term "
+                 "only (default). Crank to 17 to fill the whole season map — "
+                 "distant picks are provisional and re-solve every week.",
+        )
         min_prob = st.slider("min_prob (weekly floor)", 0.40, 0.70, 0.55, 0.01)
         holiday_min_prob = st.slider("holiday_min_prob", 0.40, 0.65, 0.50, 0.01)
         future_value_weight = st.slider(
@@ -310,11 +315,15 @@ def _roadmap_node(label, team, prob, status, icon="", bucket=None):
 
 
 def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=None,
-                   show_legend=True):
+                   show_legend=True, expand=False):
     """Horizontal bracket: locked ✓ → current → planned → ⋯ → 🎄 → ⋯ → 🎁 → ⋯
 
     Accepts alternate (res, probs, state, meta) so what-if simulations can be
     drawn with the same renderer. Defaults to the live solve.
+
+    expand=True renders EVERY week as its own node instead of collapsing
+    out-of-scope stretches into a "⋯" gap — unplanned weeks show their
+    strategy tag (if a per-week bucket is set) with a "·" team placeholder.
     """
     res_x = res_x if res_x is not None else res
     probs_x = probs_x if probs_x is not None else probs
@@ -364,6 +373,11 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
             nodes.append(_roadmap_node(
                 lid, planned_team, f"{p:.0%} plan" if p else "plan", "planned", icon,
                 bucket=node_bkt))
+        elif expand:
+            # Expanded view: every week is a node. No planned pick yet —
+            # show the strategy tag so a mapped-out season reads at a glance.
+            status = "holiday" if is_holiday else "gap"
+            nodes.append(_roadmap_node(lid, "·", "", status, icon, bucket=node_bkt))
         else:
             gap_run.append(lid)
     flush_gap()
@@ -612,13 +626,28 @@ for tab, e in zip(entry_tabs, entry_ids):
         bucket = entry.get("bucket") or "—"
 
         st.subheader("Season roadmap")
-        render_roadmap(e)
+        # Auto-expand the map when this entry has strategy set for weeks the
+        # solver isn't planning yet — otherwise those overrides would be
+        # hidden inside a collapsed "⋯" gap.
+        scope_now = set(meta.get("near_term", [])) | holiday_set
+        has_hidden_overrides = any(
+            lid not in scope_now for lid in entry.get("leg_buckets", {})
+        )
+        expand_map = st.toggle(
+            "Expand all weeks", value=has_hidden_overrides, key=f"expand_map_{e}",
+            help="Show every week as its own node. Weeks without a planned pick "
+                 "show a · placeholder plus your strategy tag. To fill picks in, "
+                 "raise Horizon in the sidebar (Advanced) — up to the full season.",
+        )
+        render_roadmap(e, expand=expand_map)
 
         with st.expander("🎛 Per-week strategy — override the bucket for any week"):
             st.caption(
                 "Every week defaults to this entry's bucket (set in the sidebar). "
                 "Override any upcoming week here — e.g. contrarian in W1, "
-                "conservation in W2, contrarian again in W3. Locked weeks can't change."
+                "conservation in W2, contrarian again in W3. Locked weeks can't change. "
+                "To see planned PICKS for far-out weeks on the map, raise Horizon "
+                "(sidebar → Advanced) up to 17 = whole season."
             )
             default_bkt = entry.get("bucket") or "—"
             st.markdown(f"Entry default: **{default_bkt}**  ·  color key: "

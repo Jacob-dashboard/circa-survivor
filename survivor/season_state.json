@@ -92,7 +92,13 @@
       "alive": true,
       "used_teams": [],
       "picks": {},
-      "bucket": "contrarian"
+      "bucket": "contrarian",
+      "leg_buckets": {
+        "W1": "contrarian",
+        "W2": "conservation",
+        "W3": "contrarian",
+        "W12": "chalk"
+      }
     },
     "1": {
       "alive": true,
