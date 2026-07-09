@@ -74,13 +74,17 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.subheader("Buckets")
+    st.subheader("Default buckets")
+    st.caption("Season default per entry. Override individual weeks on each "
+               "entry's tab (🎛 Per-week strategy).")
     for e in entry_ids:
         entry = state["entries"][e]
         current = entry.get("bucket")
         options = ["—", "chalk", "contrarian", "conservation"]
         idx = options.index(current) if current in options else 0
-        new_bucket = st.selectbox(f"Entry {e}", options, index=idx, key=f"bucket_{e}")
+        n_over = len(entry.get("leg_buckets", {}))
+        label = f"Entry {e}" + (f" ({n_over} week override{'s' if n_over != 1 else ''})" if n_over else "")
+        new_bucket = st.selectbox(label, options, index=idx, key=f"bucket_{e}")
         new_val = None if new_bucket == "—" else new_bucket
         if new_val != current:
             state_mod.set_bucket(state, e, new_val)
@@ -152,7 +156,7 @@ def _rank_alternatives(leg_id, entry_idx, floor, top_n=6):
     """Viable teams for one entry/leg, by win prob desc; model pick always included."""
     entry = state["entries"][entry_idx]
     used = set(entry["used_teams"])
-    bucket = entry.get("bucket")
+    bucket = state_mod.effective_bucket(entry, leg_id)
     cw = solver.DEFAULT_CONTRARIAN_BY_BUCKET.get(
         bucket, solver.DEFAULT_CONTRARIAN_BY_BUCKET.get(None, 0.6))
     leg_probs = probs.get(leg_id, {})
@@ -282,15 +286,26 @@ _NODE_STYLES = {
 }
 
 
-def _roadmap_node(label, team, prob, status, icon=""):
+_BUCKET_SHORT = {"chalk": "chalk", "contrarian": "contrarian", "conservation": "conserve"}
+_BUCKET_COLOR = {"chalk": "#21a366", "contrarian": "#c0392b", "conservation": "#d4a017"}
+
+
+def _roadmap_node(label, team, prob, status, icon="", bucket=None):
     border, bg, op = _NODE_STYLES[status]
     team_line = f"<div style='font-size:1.05rem;font-weight:700'>{team}</div>" if team else ""
     prob_line = f"<div style='font-size:.75rem;opacity:.75'>{prob}</div>" if prob else ""
+    tag_line = ""
+    if bucket in _BUCKET_SHORT:
+        tag_line = (
+            f"<div style='font-size:.6rem;font-weight:700;text-transform:uppercase;"
+            f"letter-spacing:.03em;color:{_BUCKET_COLOR[bucket]}'>"
+            f"{_BUCKET_SHORT[bucket]}</div>"
+        )
     return (
         f"<div style='border:{border};background:{bg};opacity:{op};"
         f"border-radius:10px;padding:6px 10px;min-width:64px;text-align:center'>"
         f"<div style='font-size:.7rem;opacity:.8;white-space:nowrap'>{icon}{label}</div>"
-        f"{team_line}{prob_line}</div>"
+        f"{team_line}{prob_line}{tag_line}</div>"
     )
 
 
@@ -325,14 +340,19 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
         is_holiday = lid in sched.HOLIDAY_WEEKS
         icon = "🎄 " if lid == "TXWEEK" else ("🎁 " if lid == "XMASWEEK" else "")
 
+        bkt = state_mod.effective_bucket(entry, lid)
+        # Holiday legs are bucket-exempt in the solver, so don't tag them.
+        node_bkt = None if is_holiday else bkt
+
         if locked_team:
             flush_gap()
-            nodes.append(_roadmap_node(lid, f"✓ {locked_team}", "locked", "locked", icon))
+            nodes.append(_roadmap_node(lid, f"✓ {locked_team}", "locked", "locked", icon,
+                                       bucket=node_bkt))
         elif lid == current_leg and planned_team:
             flush_gap()
             p = probs_x.get(lid, {}).get(planned_team)
             nodes.append(_roadmap_node(
-                lid, planned_team, f"{p:.0%}" if p else "", "current", icon))
+                lid, planned_team, f"{p:.0%}" if p else "", "current", icon, bucket=node_bkt))
         elif is_holiday and planned_team:
             flush_gap()
             p = probs_x.get(lid, {}).get(planned_team)
@@ -342,7 +362,8 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
             flush_gap()
             p = probs_x.get(lid, {}).get(planned_team)
             nodes.append(_roadmap_node(
-                lid, planned_team, f"{p:.0%} plan" if p else "plan", "planned", icon))
+                lid, planned_team, f"{p:.0%} plan" if p else "plan", "planned", icon,
+                bucket=node_bkt))
         else:
             gap_run.append(lid)
     flush_gap()
@@ -531,6 +552,42 @@ with tab_week:
         f"Your action for **{current_leg}**: check each card, confirm, lock. "
         "Details and the season roadmap live in each entry's own tab."
     )
+
+    with st.expander("📖 Strategy guide — what each bucket does & how it's built"):
+        st.markdown(
+            """
+**Three strategy buckets.** Each entry has a default bucket (sidebar), and you
+can override it per week on the entry's tab (🎛 Per-week strategy).
+
+- 🟢 **Chalk** — take the safest favorite every week. Maximizes raw survival,
+  barely conserves. Your *stay-alive* entry.
+- 🔴 **Contrarian** — deliberately fade the popular/obvious pick so your entries
+  fail **independently** (and you diverge from the public field). Trades a few
+  points of weekly safety for decorrelation — if a chalk-killing upset lands,
+  this entry is positioned to survive it.
+- 🟡 **Conservation** — hoard strong teams and holiday-pool teams; spend
+  **low-win-total teams early** while they're favorites (e.g. a 5.5-win team
+  laying −175 at home). Builds a deeper roster for the back half and the two
+  holiday Contest Weeks.
+
+**How the model picks.** A mixed-integer optimizer (PuLP/HiGHS) maximizes, across
+every planned week, the sum over your picks of
+
+&nbsp;&nbsp;&nbsp;`log(win probability)  −  contrarian × popularity  −  conservation × future-value`
+
+subject to hard rules: exactly one team per week, **no team reused all season**,
+and **at least one pool team reserved** for Thanksgiving & Christmas (Rules 8/9).
+Win probability blends our Elo model with DraftKings moneylines. The bucket sets
+the *contrarian* and *conservation* weights for that week — so switching a week's
+bucket literally re-weights that week's objective and can change the pick.
+
+**Why 2 entries + buckets?** One upset shouldn't kill your whole portfolio.
+Running chalk + contrarian keeps one entry maximally safe while the other stays
+decorrelated, so you're more likely to arrive at the holidays with *both* entries
+alive holding *different* teams — the position that lets you hedge.
+"""
+        )
+
     cols = st.columns(len(entry_ids))
     for col, e in zip(cols, entry_ids):
         with col:
@@ -556,6 +613,39 @@ for tab, e in zip(entry_tabs, entry_ids):
 
         st.subheader("Season roadmap")
         render_roadmap(e)
+
+        with st.expander("🎛 Per-week strategy — override the bucket for any week"):
+            st.caption(
+                "Every week defaults to this entry's bucket (set in the sidebar). "
+                "Override any upcoming week here — e.g. contrarian in W1, "
+                "conservation in W2, contrarian again in W3. Locked weeks can't change."
+            )
+            default_bkt = entry.get("bucket") or "—"
+            st.markdown(f"Entry default: **{default_bkt}**  ·  color key: "
+                        f"<span style='color:#21a366;font-weight:700'>CHALK</span> · "
+                        f"<span style='color:#c0392b;font-weight:700'>CONTRARIAN</span> · "
+                        f"<span style='color:#d4a017;font-weight:700'>CONSERVE</span>",
+                        unsafe_allow_html=True)
+            leg_buckets = entry.get("leg_buckets", {})
+            start = loaded_legs.index(current_leg) if current_leg in loaded_legs else 0
+            # Non-holiday upcoming legs (buckets don't affect holiday weeks).
+            editable = [lid for lid in loaded_legs[start:] if lid not in sched.HOLIDAY_WEEKS]
+            for lid in editable:
+                is_locked = lid in entry["picks"]
+                opts = ["(default)", "chalk", "contrarian", "conservation"]
+                cur = leg_buckets.get(lid)
+                idx = opts.index(cur) if cur in opts else 0
+                lc, rc = st.columns([1, 3])
+                lc.markdown(f"**{lid}**" + (" 🔒" if is_locked else ""))
+                sel = rc.selectbox(
+                    "bucket", opts, index=idx, key=f"legbkt_{e}_{lid}",
+                    label_visibility="collapsed", disabled=is_locked,
+                )
+                new_val = None if sel == "(default)" else sel
+                if not is_locked and new_val != cur:
+                    state_mod.set_leg_bucket(state, e, lid, new_val)
+                    state_mod.save_state(state)
+                    st.rerun()
 
         st.divider()
         st.subheader(f"This week ({current_leg})")

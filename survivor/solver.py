@@ -38,12 +38,29 @@ from . import schedule
 from . import state as state_mod
 
 
+# Per-bucket contrarian weight: how hard to avoid the popular/chalk pick.
 DEFAULT_CONTRARIAN_BY_BUCKET = {
-    "chalk":        0.0,
-    "contrarian":   1.5,
-    "conservation": 0.5,
+    "chalk":        0.0,   # take the safest favorite
+    "contrarian":   1.5,   # actively fade the obvious pick
+    "conservation": 0.3,   # mild fade; conservation is about roster, not popularity
     None:           0.6,
 }
+
+# Per-bucket multiplier on the future-value (conservation) penalty. This is
+# what makes "conservation" mean what its name says: hoard strong / holiday-
+# pool teams and spend weak teams early. Chalk barely conserves (it just wants
+# the safest team now); conservation conserves hard.
+DEFAULT_FV_MULT_BY_BUCKET = {
+    "chalk":        0.4,
+    "contrarian":   1.0,
+    "conservation": 2.2,
+    None:           1.0,
+}
+
+
+def _effective_bucket(entry, leg_id):
+    """Bucket in force for a leg: per-leg override, else the entry default."""
+    return entry.get("leg_buckets", {}).get(leg_id) or entry.get("bucket")
 
 
 # ---------------------------------------------------------------------------
@@ -158,10 +175,13 @@ def solve(
     straddle_reward=0.35,
     concentration_penalty=0.25,
     future_value_weight=0.5,
+    fv_mult_by_bucket=None,
     endgame=False,
 ):
     if contrarian_by_bucket is None:
         contrarian_by_bucket = DEFAULT_CONTRARIAN_BY_BUCKET
+    if fv_mult_by_bucket is None:
+        fv_mult_by_bucket = DEFAULT_FV_MULT_BY_BUCKET
 
     legs, near_set, holiday_set = _weeks_to_solve(state, horizon)
     probs = {lid: leg_probs_live(state, lid) for lid in legs}
@@ -197,11 +217,13 @@ def solve(
     # ----- objective: per-pick terms -----------------------------------------
     obj_terms = []
     for e in alive:
-        bucket = state["entries"][e].get("bucket")
-        cw = contrarian_by_bucket.get(
-            bucket, contrarian_by_bucket.get(None, 0.6)
-        )
+        entry_obj = state["entries"][e]
         for lid, team_vars in x[e].items():
+            # Bucket is resolved PER LEG, so an entry can be contrarian one
+            # week and conservation the next.
+            bucket = _effective_bucket(entry_obj, lid)
+            cw = contrarian_by_bucket.get(bucket, contrarian_by_bucket.get(None, 0.6))
+            fv_mult = fv_mult_by_bucket.get(bucket, fv_mult_by_bucket.get(None, 1.0))
             wk_mult = holiday_weight if lid in holiday_set else 1.0
             top = max(probs[lid].values())
             for team, var in team_vars.items():
@@ -209,10 +231,11 @@ def solve(
                 pop = p / top
                 coeff = wk_mult * (math.log(p) - cw * pop)
                 # Conservation: burning a high-future-value team in an
-                # ordinary week costs its option value. Holiday weeks are
-                # exempt — that's where the conserved teams get spent.
+                # ordinary week costs its option value, scaled by the leg's
+                # bucket. Holiday weeks are exempt — that's where the
+                # conserved teams get spent.
                 if lid not in holiday_set:
-                    coeff -= future_value_weight * future_value(team)
+                    coeff -= future_value_weight * fv_mult * future_value(team)
                 obj_terms.append(coeff * var)
 
     # ----- decorrelation penalty: z[l,t] -------------------------------------

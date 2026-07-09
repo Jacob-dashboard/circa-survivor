@@ -36,7 +36,8 @@ DEFAULT_STATE = {
             "alive": True,
             "used_teams": [],
             "picks": {},        # leg_id -> team
-            "bucket": None,     # "chalk" | "contrarian" | "conservation"
+            "bucket": None,     # default strategy: chalk | contrarian | conservation
+            "leg_buckets": {},  # leg_id -> bucket override (falls back to `bucket`)
         }
         for i in range(N_ENTRIES)
     },
@@ -99,6 +100,23 @@ def record_pick(state, entry_idx, leg, team, survived=True):
 
 def set_bucket(state, entry_idx, bucket):
     state["entries"][str(entry_idx)]["bucket"] = bucket
+
+
+def set_leg_bucket(state, entry_idx, leg, bucket):
+    """Override the strategy bucket for one leg. `bucket=None` clears it,
+    reverting that leg to the entry's default bucket."""
+    entry = state["entries"][str(entry_idx)]
+    lb = entry.setdefault("leg_buckets", {})
+    if bucket is None:
+        lb.pop(leg, None)
+    else:
+        lb[leg] = bucket
+
+
+def effective_bucket(entry, leg_id):
+    """The bucket in force for a given leg: per-leg override if set, else the
+    entry's season default. `entry` is the entry dict, not an index."""
+    return entry.get("leg_buckets", {}).get(leg_id) or entry.get("bucket")
 
 
 def alive_entries(state):

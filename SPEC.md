@@ -38,7 +38,11 @@ Each team is usable **once per entry, whole season**.
 ## 3. Design commitments
 
 1. **Entries are discrete strategy buckets**, not a single chalk→contrarian dial.
-   Buckets: `chalk`, `contrarian`, `conservation`. Aggression differentiated by bucket.
+   Buckets: `chalk`, `contrarian`, `conservation`. Each bucket sets a contrarian
+   weight *and* a future-value (conservation) multiplier — `conservation` conserves
+   hard, `chalk` barely. Buckets are resolved **per (entry, leg)**: an entry has a
+   season default (`bucket`) plus optional per-week overrides (`leg_buckets`), so a
+   single entry can be contrarian in W1, conservation in W2, contrarian in W3.
 2. **The two holiday Contest Weeks are the terminal node** the portfolio back-plans toward.
 3. **Rolling horizon with reservations**:
    - NEAR-TERM (current week + `horizon` weeks, default 2): picks COMMITTED. Decorrelation active.
