@@ -95,7 +95,7 @@
       "bucket": "contrarian",
       "leg_buckets": {
         "W1": "contrarian",
-        "W2": "conservation",
+        "W2": "contrarian",
         "W3": "contrarian",
         "W12": "chalk"
       }

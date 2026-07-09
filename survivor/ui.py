@@ -44,6 +44,35 @@ st.set_page_config(
     layout="wide",
 )
 
+# --- Mobile responsiveness -------------------------------------------------
+# Streamlit keeps st.columns side-by-side even on phones, which squishes the
+# This-Week cards and headline/metric rows. Below 640px we stack columns to
+# full width, tighten page padding, and let long tab bars scroll.
+st.markdown(
+    """
+    <style>
+      @media (max-width: 640px) {
+        .block-container { padding: 0.8rem 0.7rem 3rem !important; }
+        /* Stack any horizontal column group vertically */
+        div[data-testid="stHorizontalBlock"] { flex-direction: column !important; }
+        div[data-testid="stColumn"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+        /* Metrics a touch smaller so 2-3 stacked don't dominate the fold */
+        div[data-testid="stMetricValue"] { font-size: 1.4rem !important; }
+        /* Tab bar scrolls horizontally instead of wrapping/clipping */
+        div[data-testid="stTabs"] div[role="tablist"] {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+        }
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Load state defensively — a malformed/empty season_state.json on a fresh host
 # should not produce a blank page. Fall back to a clean default and say so.
 try:
@@ -419,10 +448,15 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
             gap_run.append(lid)
     flush_gap()
 
-    arrow = "<div style='opacity:.45;font-size:1.1rem'>→</div>"
+    arrow = "<div style='opacity:.45;font-size:1.1rem;flex:0 0 auto'>→</div>"
+    # Horizontal scroll strip: keeps the bracket linear and swipeable on phones
+    # (and tidy on desktop even at horizon=17, when there are 20 nodes).
     html = (
-        "<div style='display:flex;flex-wrap:wrap;align-items:center;gap:6px;"
-        "padding:6px 0'>" + arrow.join(nodes) + "</div>"
+        "<div style='display:flex;flex-wrap:nowrap;overflow-x:auto;"
+        "align-items:center;gap:6px;padding:6px 2px 12px;"
+        "-webkit-overflow-scrolling:touch'>"
+        + arrow.join(f"<div style='flex:0 0 auto'>{n}</div>" for n in nodes)
+        + "</div>"
     )
     st.markdown(html, unsafe_allow_html=True)
     if show_legend:
