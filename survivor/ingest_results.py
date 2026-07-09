@@ -14,10 +14,52 @@ Auto-skips entries that:
 Holiday Contest Weeks resolve to the underlying ESPN week via the same
 LEG_TO_ESPN_WEEK map ingest_lines uses.
 """
+import json
+import urllib.request
+
 from . import schedule as sched
 from . import state as state_mod
-from .ingest_schedule import _team_abbr, fetch_week
+from .ingest_schedule import USER_AGENT, _team_abbr, fetch_week
 from .ingest_lines import LEG_TO_ESPN_WEEK
+
+STANDINGS_URL = (
+    "https://site.api.espn.com/apis/v2/sports/football/nfl/standings?season={year}"
+)
+
+
+def fetch_records(year=2026):
+    """{team_abbr: {"wins", "losses", "ties", "summary"}} from ESPN standings.
+
+    Pinned to `year` so we never show a stale prior season's finals (the
+    unparameterized endpoint serves LAST season until the new one starts).
+    Returns {} when the season hasn't started / ESPN hasn't seeded standings,
+    so callers can suppress records cleanly in the offseason.
+    """
+    req = urllib.request.Request(
+        STANDINGS_URL.format(year=year), headers={"User-Agent": USER_AGENT}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return {}
+
+    out = {}
+    for group in payload.get("children", []):
+        for entry in (group.get("standings") or {}).get("entries", []):
+            abbr = (entry.get("team") or {}).get("abbreviation")
+            if not abbr:
+                continue
+            stats = {s.get("name"): s.get("value") for s in entry.get("stats", [])}
+            w = int(stats.get("wins") or 0)
+            l = int(stats.get("losses") or 0)
+            t = int(stats.get("ties") or 0)
+            if w + l + t == 0:
+                continue  # season not started for this team; omit
+            summary = f"{w}-{l}" + (f"-{t}" if t else "")
+            out[_team_abbr(abbr)] = {"wins": w, "losses": l, "ties": t,
+                                     "summary": summary}
+    return out
 
 
 def _parse_event(event):

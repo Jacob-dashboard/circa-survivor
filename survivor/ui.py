@@ -58,6 +58,21 @@ def _game_meta(year, leg_id):
     return ingest_lines.fetch_game_meta(year, leg_id)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _season_records(year):
+    """Live W/L records from ESPN standings. Empty dict until games start."""
+    return ingest_results.fetch_records(year)
+
+
+RECORDS = _season_records(2026)
+
+
+def _rec(team):
+    """' (3-1)' once the season starts; '' in the offseason so UI stays clean."""
+    r = RECORDS.get(team)
+    return f" ({r['summary']})" if r else ""
+
+
 # ---------------------------------------------------------------------------
 # Sidebar — settings only
 # ---------------------------------------------------------------------------
@@ -138,9 +153,10 @@ def _matchup_bits(pick, game_meta_pair):
     """(matchup_str, caption_str, spread_for_pick or None) for a pick."""
     g = ingest_lines.game_for_team(game_meta_pair, pick) if game_meta_pair else None
     if not g:
-        return f"**{pick}**", "⏳ game data not available yet", None
+        return f"**{pick}{_rec(pick)}**", "⏳ game data not available yet", None
     away, home, m = g
-    loc = f"@ {home}" if pick == away else f"vs {away}"
+    opp = home if pick == away else away
+    loc = f"@ {opp}{_rec(opp)}" if pick == away else f"vs {opp}{_rec(opp)}"
     ha = "AWAY" if pick == away else "HOME"
     bits = []
     if m.get("kickoff_display"):
@@ -154,7 +170,8 @@ def _matchup_bits(pick, game_meta_pair):
     sp = None
     if m.get("spread_home") is not None:
         sp = m["spread_home"] if pick == home else -m["spread_home"]
-    return f"**{pick}** {loc} · *{ha}*", " · ".join(bits) or "⏳ no line posted yet", sp
+    return (f"**{pick}{_rec(pick)}** {loc} · *{ha}*",
+            " · ".join(bits) or "⏳ no line posted yet", sp)
 
 
 def _rank_alternatives(leg_id, entry_idx, floor, top_n=6):
@@ -198,7 +215,9 @@ def render_alternatives(leg_id, entry_idx, floor, key_prefix):
         g = ingest_lines.game_for_team(meta_by_pair, a["team"]) if leg_id == current_leg else None
         if g:
             away_t, home_t, gm = g
-            matchup = f"@ {home_t}" if a["team"] == away_t else f"vs {away_t}"
+            opp_t = home_t if a["team"] == away_t else away_t
+            matchup = (f"@ {opp_t}{_rec(opp_t)}" if a["team"] == away_t
+                       else f"vs {opp_t}{_rec(opp_t)}")
             sh = gm.get("spread_home")
             sp = (sh if a["team"] == home_t else -sh) if sh is not None else None
             spread_str = ("PK" if sp is not None and abs(sp) < 0.05
@@ -215,7 +234,7 @@ def render_alternatives(leg_id, entry_idx, floor, key_prefix):
             conserve = "✅ burn-friendly"
         wt = data.WIN_TOTALS.get(a["team"], (None,))[0]
         rows.append({
-            "Team": ("★ " if a["is_rec"] else "") + a["team"],
+            "Team": ("★ " if a["is_rec"] else "") + a["team"] + _rec(a["team"]),
             "Game": matchup, "Spread": spread_str,
             "Win%": f"{a['win_prob']:.1%}",
             "Win O/U": f"{wt:.1f}" if wt is not None else "—",
@@ -434,7 +453,8 @@ def render_what_if(entry_idx):
         pool_note = f" · burns {pool_bits.strip('/')}" if pool_bits else ""
         wt = data.WIN_TOTALS.get(a["team"], (None,))[0]
         wt_note = f" · {wt:.1f} O/U" if wt is not None else ""
-        labels[a["team"]] = f"{a['team']} — {a['win_prob']:.0%}{wt_note}{pool_note}{tag}"
+        labels[a["team"]] = (f"{a['team']}{_rec(a['team'])} — "
+                             f"{a['win_prob']:.0%}{wt_note}{pool_note}{tag}")
 
     default_idx = team_options.index(model_pick) if model_pick in team_options else 0
     choice = st.selectbox(
