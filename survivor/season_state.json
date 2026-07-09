@@ -1,0 +1,105 @@
+{
+  "current_leg": "W1",
+  "elo_adjustments": {},
+  "leg_overrides": {
+    "W1": {
+      "lines": {
+        "SEA|NE": {
+          "home": -198,
+          "away": 164,
+          "market_weight": 0.85
+        },
+        "LAR|SF": {
+          "home": -175,
+          "away": 145,
+          "market_weight": 0.85
+        },
+        "CIN|TB": {
+          "home": -198,
+          "away": 164,
+          "market_weight": 0.85
+        },
+        "DET|NO": {
+          "home": -325,
+          "away": 260,
+          "market_weight": 0.85
+        },
+        "TEN|NYJ": {
+          "home": -162,
+          "away": 136,
+          "market_weight": 0.85
+        },
+        "IND|BAL": {
+          "home": 160,
+          "away": -192,
+          "market_weight": 0.85
+        },
+        "PIT|ATL": {
+          "home": -170,
+          "away": 142,
+          "market_weight": 0.85
+        },
+        "CAR|CHI": {
+          "home": 114,
+          "away": -135,
+          "market_weight": 0.85
+        },
+        "JAX|CLE": {
+          "home": -340,
+          "away": 270,
+          "market_weight": 0.85
+        },
+        "HOU|BUF": {
+          "home": -105,
+          "away": -115,
+          "market_weight": 0.85
+        },
+        "LV|MIA": {
+          "home": -175,
+          "away": 145,
+          "market_weight": 0.85
+        },
+        "MIN|GB": {
+          "home": -108,
+          "away": -112,
+          "market_weight": 0.85
+        },
+        "PHI|WAS": {
+          "home": -238,
+          "away": 195,
+          "market_weight": 0.85
+        },
+        "LAC|ARI": {
+          "home": -600,
+          "away": 440,
+          "market_weight": 0.85
+        },
+        "NYG|DAL": {
+          "home": 114,
+          "away": -135,
+          "market_weight": 0.85
+        },
+        "KC|DEN": {
+          "home": -148,
+          "away": 124,
+          "market_weight": 0.85
+        }
+      }
+    }
+  },
+  "entries": {
+    "0": {
+      "alive": true,
+      "used_teams": [],
+      "picks": {},
+      "bucket": "contrarian"
+    },
+    "1": {
+      "alive": true,
+      "used_teams": [],
+      "picks": {},
+      "bucket": "conservation"
+    }
+  },
+  "notes": {}
+}

@@ -1,0 +1,116 @@
+"""
+Circa Survivor 2026 — Live State Layer
+======================================
+Mutable, session-persistent layer on top of the static data/schedule.
+Persists to `survivor/season_state.json` and is treated as the living
+dispatch context for the season: edited weekly as picks lock, injuries
+hit, lines move, and entries are eliminated.
+
+Design rules:
+  - Loading NEVER writes to disk (no `save_state` inside `load_state`).
+  - `current_elo` returns BASE_ELO + adjustments, so seed values stay intact.
+  - Moneyline overrides live under `leg_overrides[leg]["lines"]` and the
+    solver/probability path consults them before falling back to Elo.
+  - Entries are five independent buckets indexed "0".."4".
+"""
+import copy
+import json
+import os
+
+from . import data
+
+STATE_PATH = os.path.join(os.path.dirname(__file__), "season_state.json")
+
+# Number of contest entries actually purchased. Was 5 in the planning phase;
+# the user bought 2 for the 2026 contest. Everything downstream (solver, UI,
+# CLI) sizes itself off the entries dict in state, so this constant is the
+# single place to change.
+N_ENTRIES = 2
+
+DEFAULT_STATE = {
+    "current_leg": "W1",
+    "elo_adjustments": {},      # team -> delta Elo
+    "leg_overrides": {},        # leg_id -> {"lines": {"HOME|AWAY": {...}}}
+    "entries": {
+        str(i): {
+            "alive": True,
+            "used_teams": [],
+            "picks": {},        # leg_id -> team
+            "bucket": None,     # "chalk" | "contrarian" | "conservation"
+        }
+        for i in range(N_ENTRIES)
+    },
+    "notes": {},
+}
+
+
+def load_state():
+    """Return existing JSON state, or a fresh deep copy of DEFAULT_STATE.
+
+    Never writes to disk. Returning a deep copy guarantees mutations by
+    callers cannot accidentally edit the module-level DEFAULT_STATE.
+    """
+    if os.path.exists(STATE_PATH):
+        with open(STATE_PATH, "r") as f:
+            return json.load(f)
+    return copy.deepcopy(DEFAULT_STATE)
+
+
+def save_state(state):
+    with open(STATE_PATH, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+def current_elo(state):
+    """BASE_ELO with `elo_adjustments` deltas added on top."""
+    elo = dict(data.BASE_ELO)
+    for team, delta in state.get("elo_adjustments", {}).items():
+        elo[team] = elo.get(team, 1500.0) + delta
+    return elo
+
+
+def adjust_strength(state, team, delta, note=None):
+    adj = state.setdefault("elo_adjustments", {})
+    adj[team] = adj.get(team, 0.0) + delta
+    if note:
+        notes = state.setdefault("notes", {}).setdefault("strength", [])
+        notes.append({"team": team, "delta": delta, "note": note})
+
+
+def set_line(state, leg, away, home, ml_away, ml_home, market_weight=0.85):
+    legs = state.setdefault("leg_overrides", {})
+    leg_entry = legs.setdefault(leg, {})
+    lines = leg_entry.setdefault("lines", {})
+    lines[f"{home}|{away}"] = {
+        "home": ml_home,
+        "away": ml_away,
+        "market_weight": market_weight,
+    }
+
+
+def record_pick(state, entry_idx, leg, team, survived=True):
+    entry = state["entries"][str(entry_idx)]
+    entry["picks"][leg] = team
+    if team not in entry["used_teams"]:
+        entry["used_teams"].append(team)
+    if not survived:
+        entry["alive"] = False
+
+
+def set_bucket(state, entry_idx, bucket):
+    state["entries"][str(entry_idx)]["bucket"] = bucket
+
+
+def alive_entries(state):
+    return [i for i, e in state["entries"].items() if e["alive"]]
+
+
+def used_by(state, entry_idx):
+    return list(state["entries"][str(entry_idx)]["used_teams"])
+
+
+if __name__ == "__main__":
+    s = load_state()
+    print("current_leg     :", s["current_leg"])
+    print("alive entries   :", alive_entries(s))
+    print("elo_adjustments :", s["elo_adjustments"])
