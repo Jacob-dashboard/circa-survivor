@@ -419,10 +419,15 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
             gap_run.append(lid)
     flush_gap()
 
-    arrow = "<div style='opacity:.45;font-size:1.1rem'>→</div>"
+    # Horizontal scroll strip — swipeable on phones, tidy at horizon=17 on
+    # desktop. Inline styles on our own div only; no Streamlit internals
+    # touched, so this cannot affect the rest of the page.
+    arrow = "<div style='opacity:.45;font-size:1.1rem;flex:0 0 auto'>→</div>"
     html = (
-        "<div style='display:flex;flex-wrap:wrap;align-items:center;gap:6px;"
-        "padding:6px 0'>" + arrow.join(nodes) + "</div>"
+        "<div style='display:flex;flex-wrap:nowrap;overflow-x:auto;"
+        "align-items:center;gap:6px;padding:6px 2px 12px'>"
+        + arrow.join(f"<div style='flex:0 0 auto'>{n}</div>" for n in nodes)
+        + "</div>"
     )
     st.markdown(html, unsafe_allow_html=True)
     if show_legend:

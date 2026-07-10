@@ -2,9 +2,12 @@
 
   * `python -m survivor [subcommand]` — normal CLI (package context exists).
   * Run as a bare script — e.g. Streamlit Cloud configured with
-    "survivor/__main__.py" as the main file path. Relative imports are
-    impossible in that mode, so instead of crashing we bootstrap the project
-    root onto sys.path and boot the Streamlit UI.
+    "survivor/__main__.py" as the main file path.
+
+In the Streamlit case the UI script must be RE-EXECUTED on every rerun.
+A plain `import survivor.ui` renders only the first run (Python caches
+imports) and every rerun after that draws a blank page. runpy executes
+the file fresh each run, matching `streamlit run survivor/ui.py`.
 """
 if __package__:
     from .cli import main
@@ -13,7 +16,7 @@ if __package__:
         main()
 else:
     import os
-    import sys
+    import runpy
 
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-    import survivor.ui  # noqa: F401  (import side effect runs the Streamlit app)
+    _UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui.py")
+    runpy.run_path(_UI, run_name="__main__")
