@@ -126,10 +126,12 @@ with st.sidebar:
 
     with st.expander("⚙ Advanced (solver dials)"):
         horizon = st.slider(
-            "Horizon (weeks planned)", 1, 17, 2,
-            help="How many upcoming weeks get provisional picks. 2 = near-term "
-                 "only (default). Crank to 17 to fill the whole season map — "
-                 "distant picks are provisional and re-solve every week.",
+            "Horizon (weeks planned)", 1, 17, 17,
+            help="How many upcoming weeks get provisional picks. Default 17 = "
+                 "plan the whole season (re-solved weekly; distant picks are "
+                 "provisional). Lower it only if you want to focus the model "
+                 "on the near term. Weeks you give a per-week strategy are "
+                 "always planned regardless of this slider.",
         )
         min_prob = st.slider("min_prob (weekly floor)", 0.40, 0.70, 0.55, 0.01)
         holiday_min_prob = st.slider("holiday_min_prob", 0.40, 0.65, 0.50, 0.01)
@@ -147,10 +149,22 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 
 current_leg = state["current_leg"]
+
+# A per-week strategy override is a declaration of intent to plan that week.
+# If any override falls outside the slider's window, extend the horizon so
+# the week actually gets solved — otherwise the roadmap shows the strategy
+# tag with no suggested pick, which reads as "blank".
+_scope_legs, _, _ = solver._weeks_to_solve(state, horizon)
+_overridden = {
+    lid for ent in state["entries"].values()
+    for lid in ent.get("leg_buckets", {})
+}
+effective_horizon = 17 if (_overridden - set(_scope_legs)) else horizon
+
 solver_error = None
 try:
     res, probs, meta = solver.solve(
-        state, horizon=horizon, min_prob=min_prob,
+        state, horizon=effective_horizon, min_prob=min_prob,
         holiday_min_prob=holiday_min_prob,
         future_value_weight=future_value_weight, endgame=endgame,
     )
