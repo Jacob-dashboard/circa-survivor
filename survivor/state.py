@@ -102,6 +102,21 @@ def set_bucket(state, entry_idx, bucket):
     state["entries"][str(entry_idx)]["bucket"] = bucket
 
 
+def unlock_pick(state, entry_idx, leg):
+    """Remove a locked pick for a leg that hasn't been played yet.
+
+    Rebuilds used_teams from the remaining picks so the freed team becomes
+    selectable again. Does NOT touch `alive` — never unlock a leg that has
+    already been verified as a loss.
+    """
+    entry = state["entries"][str(entry_idx)]
+    removed = entry["picks"].pop(leg, None)
+    if removed is not None:
+        entry["used_teams"] = [t for t in entry["used_teams"]
+                               if t in entry["picks"].values()]
+    return removed
+
+
 def set_leg_bucket(state, entry_idx, leg, bucket):
     """Override the strategy bucket for one leg. `bucket=None` clears it,
     reverting that leg to the entry's default bucket."""

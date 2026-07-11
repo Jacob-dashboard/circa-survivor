@@ -447,7 +447,8 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
     if show_legend:
         st.caption(
             "✓ locked · blue = this week (lock it) · gray = planned (re-solved weekly) · "
-            "gold = holiday reservation · ⋯ = solved later as the horizon rolls forward"
+            "gold = holiday reservation · ⋯ = solved later — **edit any node in "
+            "🔀 Plan / edit any week below**"
         )
 
 
@@ -455,31 +456,34 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
 # What-if: override this week's pick, re-solve, show the ripple
 # ---------------------------------------------------------------------------
 
-def run_what_if(entry_idx, override_team):
-    """Sandbox solve with `override_team` locked for this entry in current_leg.
+def run_what_if(entry_idx, override_team, leg_id):
+    """Sandbox solve with `override_team` locked for this entry in `leg_id`.
 
     Returns (sim_res, sim_probs, sim_meta, sim_state). Never touches real state.
     """
     sim_state = copy.deepcopy(state)
-    state_mod.record_pick(sim_state, entry_idx, current_leg, override_team, survived=True)
+    state_mod.record_pick(sim_state, entry_idx, leg_id, override_team, survived=True)
     sim_res, sim_probs, sim_meta = solver.solve(
-        sim_state, horizon=horizon, min_prob=min_prob,
+        sim_state, horizon=effective_horizon, min_prob=min_prob,
         holiday_min_prob=holiday_min_prob,
         future_value_weight=future_value_weight, endgame=endgame,
     )
     return sim_res, sim_probs, sim_meta, sim_state
 
 
-def render_what_if(entry_idx):
-    """Selectbox of alternatives; on override, show re-solved plan vs current."""
+def render_what_if(entry_idx, leg_id):
+    """Selectbox of alternatives for `leg_id`; on override, show the re-solved
+    plan vs current. Works for the current week and any future week alike."""
     entry = state["entries"][entry_idx]
-    if current_leg in entry["picks"]:
-        st.caption("This week is already locked — the what-if applies before locking.")
+    if leg_id in entry["picks"]:
+        st.caption(f"{leg_id} is locked — unlock it above to edit.")
         return
-    model_pick = res.get(entry_idx, {}).get(current_leg)
-    alts = _rank_alternatives(current_leg, entry_idx, floor_this_week, top_n=12)
+    leg_floor = holiday_min_prob if leg_id in holiday_set else min_prob
+    model_pick = res.get(entry_idx, {}).get(leg_id)
+    alts = _rank_alternatives(leg_id, entry_idx, leg_floor, top_n=12)
     if not alts:
-        st.caption("No viable teams above the floor to compare.")
+        st.caption(f"No viable teams above the {leg_floor:.0%} floor for {leg_id}. "
+                   "Lower min_prob in Advanced to see candidates.")
         return
 
     team_options = [a["team"] for a in alts]
@@ -497,7 +501,7 @@ def render_what_if(entry_idx):
     choice = st.selectbox(
         "Pick to explore", team_options, index=default_idx,
         format_func=lambda t: labels[t],
-        key=f"whatif_team_{entry_idx}_{current_leg}",
+        key=f"whatif_team_{entry_idx}_{leg_id}",
     )
 
     if choice == model_pick:
@@ -506,7 +510,7 @@ def render_what_if(entry_idx):
         return
 
     with st.spinner("Re-solving season plan around your pick…"):
-        sim_res, sim_probs, sim_meta, sim_state = run_what_if(entry_idx, choice)
+        sim_res, sim_probs, sim_meta, sim_state = run_what_if(entry_idx, choice, leg_id)
 
     if sim_meta["status"] != "Optimal":
         st.error(
@@ -516,9 +520,9 @@ def render_what_if(entry_idx):
         )
         return
 
-    # --- headline: this week's prob delta ---
-    p_model = probs.get(current_leg, {}).get(model_pick)
-    p_choice = probs.get(current_leg, {}).get(choice)
+    # --- headline: the chosen week's prob delta ---
+    p_model = probs.get(leg_id, {}).get(model_pick)
+    p_choice = probs.get(leg_id, {}).get(choice)
     m1, m2 = st.columns(2)
     m1.metric(f"Model pick · {model_pick}",
               f"{p_model:.1%}" if p_model is not None else "—")
@@ -531,19 +535,19 @@ def render_what_if(entry_idx):
     others_on_choice = [
         o for o in entry_ids
         if o != entry_idx
-        and (state["entries"][o]["picks"].get(current_leg) == choice
-             or sim_res.get(o, {}).get(current_leg) == choice)
+        and (state["entries"][o]["picks"].get(leg_id) == choice
+             or sim_res.get(o, {}).get(leg_id) == choice)
     ]
     if others_on_choice:
         st.error(
-            f"⚠ Entry {', '.join(others_on_choice)} is also on {choice} this week — "
+            f"⚠ Entry {', '.join(others_on_choice)} is also on {choice} in {leg_id} — "
             "this override stacks both entries on one game."
         )
 
-    # --- diff table: this entry's future plan, current vs override ---
+    # --- diff table: this entry's plan across all other legs, current vs override ---
     scope_legs = [lid for lid in loaded_legs
                   if lid in (set(meta.get("near_term", [])) | holiday_set)
-                  and lid != current_leg]
+                  and lid != leg_id]
     diff_rows = []
     for lid in scope_legs:
         before = res.get(entry_idx, {}).get(lid)
@@ -566,7 +570,7 @@ def render_what_if(entry_idx):
     for o in entry_ids:
         if o == entry_idx:
             continue
-        for lid in [current_leg] + scope_legs:
+        for lid in [leg_id] + scope_legs:
             b = res.get(o, {}).get(lid)
             a = sim_res.get(o, {}).get(lid)
             if b != a and lid not in state["entries"][o]["picks"]:
@@ -576,13 +580,18 @@ def render_what_if(entry_idx):
                 + " · ".join(ripple))
 
     # --- override roadmap ---
-    st.markdown(f"**Roadmap with {choice} locked**")
+    st.markdown(f"**Roadmap with {choice} locked in {leg_id}**")
     render_roadmap(entry_idx, sim_res, sim_probs, sim_state, sim_meta,
                    show_legend=False)
 
     # --- lock the override ---
-    st.markdown("**Lock this override instead of the model pick**")
-    render_lock_controls(entry_idx, current_leg, choice, key_prefix=f"whatif{entry_idx}")
+    if leg_id == current_leg:
+        st.markdown("**Lock this override instead of the model pick**")
+    else:
+        st.markdown(f"**Pin {choice} for {leg_id}** — the solver will plan every "
+                    "other week around it. Unlock anytime before it's played.")
+    render_lock_controls(entry_idx, leg_id, choice,
+                         key_prefix=f"whatif{entry_idx}_{leg_id}")
 
 
 # ---------------------------------------------------------------------------
@@ -738,12 +747,54 @@ for tab, e in zip(entry_tabs, entry_ids):
         render_entry_card(e, compact=False, key_prefix=f"ent{e}")
 
         st.divider()
-        st.subheader("🔀 Try a different pick")
+        st.subheader("🔀 Plan / edit any week")
         st.caption(
-            "Explore overriding the model. The season plan re-solves around your "
-            "choice so you see what it costs later — nothing is saved until you lock."
+            "Pick a week, explore overriding the model there, and watch the whole "
+            "season plan re-solve around it. Nothing is saved until you lock. "
+            "Locking a future week PINS it — the model plans everything else "
+            "around your pin, and you can unlock it anytime before kickoff."
         )
-        render_what_if(e)
+
+        # Week selector: label each week with its current disposition so the
+        # dropdown doubles as a season summary.
+        def _week_label(lid, _entry=entry, _e=e):
+            icon = "🎄 " if lid == "TXWEEK" else ("🎁 " if lid == "XMASWEEK" else "")
+            locked_t = _entry["picks"].get(lid)
+            if locked_t:
+                return f"{icon}{lid} — 🔒 {locked_t}"
+            planned_t = res.get(_e, {}).get(lid)
+            bkt = state_mod.effective_bucket(_entry, lid) or "—"
+            if planned_t:
+                p = probs.get(lid, {}).get(planned_t)
+                p_str = f" ({p:.0%})" if p is not None else ""
+                cur = " ← this week" if lid == current_leg else ""
+                return f"{icon}{lid} — {planned_t}{p_str} · {bkt}{cur}"
+            return f"{icon}{lid} — no pick above floor · {bkt}"
+
+        editable_legs = [lid for lid in loaded_legs]
+        default_leg_idx = editable_legs.index(current_leg) if current_leg in editable_legs else 0
+        sel_leg = st.selectbox(
+            "Week to plan", editable_legs, index=default_leg_idx,
+            format_func=_week_label, key=f"planweek_{e}",
+        )
+
+        if sel_leg in entry["picks"]:
+            locked_t = entry["picks"][sel_leg]
+            st.markdown(f"**{sel_leg} is locked on `{locked_t}`.**")
+            u1, u2 = st.columns([1, 2])
+            with u1:
+                confirm_unlock = st.checkbox("Confirm unlock", key=f"unlock_ok_{e}_{sel_leg}")
+            with u2:
+                if st.button(f"🔓 Unlock {sel_leg} ({locked_t})",
+                             key=f"unlock_{e}_{sel_leg}", disabled=not confirm_unlock):
+                    state_mod.unlock_pick(state, e, sel_leg)
+                    state_mod.save_state(state)
+                    st.rerun()
+            st.caption("Unlock frees the team for other weeks and lets the solver "
+                       "re-plan this week. Don't unlock a pick already submitted "
+                       "to Circa unless you're changing it there too.")
+        else:
+            render_what_if(e, sel_leg)
 
         st.divider()
         st.subheader("Roster status")
