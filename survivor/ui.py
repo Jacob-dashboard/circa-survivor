@@ -659,14 +659,30 @@ elif meta["status"] != "Optimal":
 # Tabs — entry-first
 # ---------------------------------------------------------------------------
 
-tab_labels = (["🎯 This Week"]
+tab_labels = (["🏟 Board", "🎯 This Week"]
               + [f"Entry {e}" for e in entry_ids]
               + ["📈 Market", "🔧 Data & Tools"])
 all_tabs = st.tabs(tab_labels)
-tab_week = all_tabs[0]
-entry_tabs = all_tabs[1:1 + len(entry_ids)]
-tab_market = all_tabs[1 + len(entry_ids)]
-tab_tools = all_tabs[2 + len(entry_ids)]
+tab_board = all_tabs[0]
+tab_week = all_tabs[1]
+entry_tabs = all_tabs[2:2 + len(entry_ids)]
+tab_market = all_tabs[2 + len(entry_ids)]
+tab_tools = all_tabs[3 + len(entry_ids)]
+
+
+# ----- 🏟 Board (custom HTML dashboard) ---------------------------------------
+
+with tab_board:
+    from survivor import board as board_mod
+    import streamlit.components.v1 as components
+
+    board_html = board_mod.build_board(
+        state, entry_ids, res, probs, meta, current_leg,
+        loaded_legs, meta_by_pair, RECORDS,
+    )
+    # Height scales with entry count; the iframe scrolls internally past that.
+    components.html(board_html, height=760 + 40 * max(0, len(entry_ids) - 2),
+                    scrolling=True)
 
 
 # ----- 🎯 This Week ----------------------------------------------------------
