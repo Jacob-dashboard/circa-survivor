@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circa Survivor 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+:root {
+  --gold:#e8b339; --violet:#8b5cf6; --green:#2ecc71; --red:#ef4444;
+  --bg:#0b0f19; --card:#121828; --card2:#0f1522; --line:rgba(232,179,57,.16);
+  --muted:#8b93a7; --text:#e6e9f0; --teal:#14b8a6;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; padding-bottom:60px; }
+a { color:var(--gold); }
+
+/* ---- header / nav ---- */
+header { padding:16px 18px 0; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+.brand { font-size:.72rem; font-weight:900; letter-spacing:.22em; color:var(--gold); }
+.week { font-size:2rem; font-weight:900; letter-spacing:-.03em; }
+.pills { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+.pill { font-size:.68rem; font-weight:700; padding:4px 10px; border-radius:999px;
+        border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+nav { display:flex; gap:4px; padding:12px 14px; overflow-x:auto; position:sticky; top:0;
+      background:linear-gradient(180deg, var(--bg) 85%, transparent); z-index:5; }
+nav button { flex:0 0 auto; background:none; border:1px solid transparent; color:var(--muted);
+      font:inherit; font-weight:700; font-size:.85rem; padding:8px 14px; border-radius:10px; cursor:pointer; }
+nav button.on { color:var(--gold); border-color:var(--gold); background:rgba(232,179,57,.08); }
+main { padding:6px 14px; max-width:1200px; margin:0 auto; }
+.view { display:none; } .view.on { display:block; }
+h2 { font-size:1.05rem; font-weight:800; letter-spacing:-.01em; margin:18px 0 10px;
+     border-bottom:1px solid var(--line); padding-bottom:6px; }
+.mut { color:var(--muted); font-size:.78rem; }
+
+/* ---- board grid ---- */
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px; }
+.entry { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
+.e-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.e-dot { width:9px; height:9px; border-radius:50%; }
+.e-name { font-weight:900; letter-spacing:.08em; font-size:.85rem; }
+.chip { font-size:.62rem; font-weight:800; letter-spacing:.1em; padding:2px 8px;
+        border-radius:999px; border:1px solid; margin-left:auto; cursor:pointer; background:none; font-family:inherit; }
+.matchup { background:linear-gradient(180deg, rgba(232,179,57,.06), transparent);
+           border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+.mu-top { display:flex; justify-content:space-between; margin-bottom:8px; }
+.st-lock { color:var(--green); border-color:#2ecc7166; }
+.st-act  { color:var(--gold); border-color:#e8b33966; }
+.ou { color:var(--muted); font-size:.7rem; font-weight:600; align-self:center; }
+.mu-team { font-size:1.5rem; font-weight:900; letter-spacing:-.02em; }
+.mu-team .vs { color:var(--muted); font-weight:600; font-size:1rem; }
+.mu-team .ha { font-size:.6rem; font-weight:800; color:var(--muted); letter-spacing:.15em; margin-left:6px; }
+.rec { color:var(--muted); font-size:.85rem; font-weight:600; }
+.mu-detail { color:var(--muted); font-size:.78rem; margin:6px 0 10px; }
+.probwrap { display:flex; align-items:center; gap:10px; }
+.probbar { flex:1; height:8px; border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden; }
+.probfill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--gold),#f5d47a); }
+.probnum { font-weight:900; font-size:1.05rem; color:var(--gold); }
+.warn { margin-top:8px; color:#f59e0b; font-size:.72rem; font-weight:600; }
+.actions { display:flex; gap:8px; margin-top:10px; }
+button.primary { background:var(--gold); color:#161207; border:none; border-radius:10px;
+                 font:inherit; font-weight:800; padding:9px 16px; cursor:pointer; }
+button.ghost { background:none; border:1px solid var(--line); color:var(--muted); border-radius:10px;
+               font:inherit; font-weight:700; padding:9px 14px; cursor:pointer; }
+button.primary:disabled { opacity:.4; cursor:default; }
+label.ck { font-size:.75rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+
+/* ---- rail ---- */
+.rail { display:flex; gap:6px; overflow-x:auto; padding:4px 2px 10px; }
+.tile { flex:0 0 auto; min-width:62px; text-align:center; border-radius:10px;
+        padding:6px 8px; border:1.5px solid #2a3247; cursor:pointer; }
+.tile-week { font-size:.58rem; color:var(--muted); font-weight:700; }
+.tile-team { font-weight:800; font-size:.95rem; }
+.tile-sub  { font-size:.62rem; color:var(--muted); }
+.tile-chip { font-size:.5rem; font-weight:800; letter-spacing:.08em; }
+.tile.now { border-color:var(--gold); background:rgba(232,179,57,.12); }
+.tile.locked { border-color:var(--green); background:rgba(46,204,113,.08); }
+.tile.hol { border-color:var(--violet); background:rgba(139,92,246,.10); }
+.tile.gap { border-style:dashed; opacity:.55; }
+.hwrap { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+.hchip { font-size:.7rem; padding:4px 10px; border-radius:999px; border:1px solid #8b5cf655; color:#cfd4e0; }
+
+/* ---- planner ---- */
+select, input[type=number], input[type=text] {
+  background:var(--card2); color:var(--text); border:1px solid var(--line);
+  border-radius:10px; padding:9px 12px; font:inherit; }
+table { width:100%; border-collapse:collapse; font-size:.82rem; margin:10px 0; }
+th { text-align:left; color:var(--muted); font-size:.68rem; letter-spacing:.08em;
+     text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--line); }
+td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); }
+tr.rec td { color:var(--gold); font-weight:700; }
+tr.clickable { cursor:pointer; } tr.clickable:hover td { background:rgba(232,179,57,.05); }
+.metricrow { display:flex; gap:14px; margin:12px 0; flex-wrap:wrap; }
+.metric { background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:10px 16px; }
+.metric .lbl { font-size:.65rem; color:var(--muted); font-weight:700; letter-spacing:.08em; }
+.metric .val { font-size:1.3rem; font-weight:900; }
+.metric .delta-up { color:var(--green); font-size:.75rem; } .metric .delta-dn { color:var(--red); font-size:.75rem; }
+.banner { border-radius:10px; padding:10px 14px; font-size:.8rem; margin:10px 0; }
+.banner.err { background:rgba(239,68,68,.1); border:1px solid #ef444466; color:#fca5a5; }
+.banner.info { background:rgba(139,92,246,.1); border:1px solid #8b5cf655; color:#c4b5fd; }
+.banner.ok { background:rgba(46,204,113,.08); border:1px solid #2ecc7155; color:#86efac; }
+.dchip { display:inline-block; font-size:.72rem; font-weight:600; padding:4px 10px;
+         border-radius:8px; margin:0 6px 6px 0; border:1px solid; }
+.dchip.ok { color:var(--green); border-color:#2ecc7144; }
+.dchip.bad { color:var(--red); border-color:#ef444466; background:rgba(239,68,68,.08); }
+
+/* ---- dials ---- */
+.dials { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin:10px 0; }
+.dial { background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:12px; }
+.dial label { font-size:.68rem; color:var(--muted); font-weight:700; letter-spacing:.06em; display:block; margin-bottom:6px; }
+.dial input[type=range] { width:100%; accent-color:var(--gold); }
+.dial .dv { font-weight:800; color:var(--gold); font-size:.8rem; }
+
+.toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+         background:#1c2436; border:1px solid var(--gold); color:var(--text);
+         padding:10px 22px; border-radius:12px; font-size:.85rem; font-weight:600;
+         opacity:0; transition:opacity .25s; pointer-events:none; z-index:99; }
+.toast.show { opacity:1; }
+@media (max-width:640px) {
+  .week { font-size:1.5rem; } main { padding:6px 10px; }
+  .mu-team { font-size:1.25rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">CIRCA SURVIVOR 2026</span>
+  <span class="week" id="hd-week">…</span>
+  <div class="pills">
+    <span class="pill" id="hd-alive">–</span>
+    <span class="pill" id="hd-locked">–</span>
+    <span class="pill" id="hd-status">–</span>
+  </div>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   Circa Survivor SPA — vanilla JS, no build step.
+   All strategy logic lives in the Python backend; this file only
+   renders /api responses and posts user actions.
+   ============================================================ */
+const $ = (s, el=document) => el.querySelector(s);
+const BUCKETS = ["chalk","contrarian","conservation"];
+const BCOLOR = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)", null:"var(--muted)"};
+const BSHORT = {chalk:"CHALK", contrarian:"CONTRARIAN", conservation:"CONSERVE"};
+
+let D = null;                       // /api/board payload
+let dials = JSON.parse(localStorage.getItem("dials") || "null") ||
+            {horizon:17, min_prob:0.55, holiday_min_prob:0.50, future_value_weight:0.5, endgame:false};
+let route = location.hash.slice(1) || "board";
+let planSel = {};                   // entry -> selected leg in planner
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+function qs(extra={}) {
+  const p = new URLSearchParams();
+  for (const [k,v] of Object.entries(dials)) p.set(k, v);
+  for (const [k,v] of Object.entries(extra)) p.set(k, v);
+  return p.toString();
+}
+async function api(path, body) {
+  const opt = body ? {method:"POST", headers:{"Content-Type":"application/json"},
+                      body:JSON.stringify(body)} : {};
+  const r = await fetch(path, opt);
+  if (!r.ok) { const e = await r.json().catch(()=>({detail:r.statusText}));
+               throw new Error(e.detail || r.statusText); }
+  return r.json();
+}
+async function refresh() {
+  D = await api(`/api/board?${qs()}`);
+  renderHeader(); renderNav(); renderView();
+}
+
+/* ---------- header / nav ---------- */
+function renderHeader() {
+  $("#hd-week").textContent = D.current_leg;
+  const ids = Object.keys(D.entries).sort();
+  const alive = ids.filter(e => D.entries[e].alive).length;
+  const locked = ids.filter(e => D.entries[e].picks[D.current_leg]).length;
+  $("#hd-alive").textContent = `${alive}/${ids.length} alive`;
+  $("#hd-locked").textContent = `${locked}/${alive} locked`;
+  $("#hd-status").textContent = `solver ${D.meta.status}`;
+}
+function renderNav() {
+  const ids = Object.keys(D.entries).sort();
+  const tabs = [["board","🏟 Board"],
+                ...ids.map(e => [`entry-${e}`, `Entry ${e}`]),
+                ["market","📈 Market"], ["tools","🔧 Tools"]];
+  $("#nav").innerHTML = tabs.map(([r,l]) =>
+    `<button class="${route===r?'on':''}" onclick="go('${r}')">${l}</button>`).join("");
+}
+function go(r) { route = r; location.hash = r; renderNav(); renderView(); }
+
+/* ---------- shared bits ---------- */
+const rec = t => D.records[t] ? ` <span class="rec">(${D.records[t]})</span>` : "";
+const pct = p => p==null ? "—" : (p*100).toFixed(1)+"%";
+function gameFor(gm, team) {
+  for (const [k,m] of Object.entries(gm||{})) {
+    const [away,home] = k.split("|");
+    if (team===away || team===home) return {away, home, m};
+  }
+  return null;
+}
+function effBucket(ent, leg) { return (ent.leg_buckets||{})[leg] || ent.bucket; }
+
+function matchupCard(e, opts={}) {
+  const ent = D.entries[e];
+  const leg = D.current_leg;
+  const locked = ent.picks[leg];
+  const pick = locked || (D.plan[e]||{})[leg];
+  if (!ent.alive) return `<div class="matchup"><div class="mu-detail">eliminated</div></div>`;
+  if (!pick) return `<div class="matchup"><div class="mu-detail">no pick clears the floor — lower min_prob in Tools</div></div>`;
+  const p = (D.probs[leg]||{})[pick];
+  const g = gameFor(D.game_meta, pick);
+  let opp="", detail="line not posted yet", warn="";
+  if (g) {
+    const isAway = pick===g.away, o = isAway ? g.home : g.away;
+    opp = `<span class="vs">${isAway?"@":"vs"}</span> ${o}${rec(o)} <span class="ha">${isAway?"AWAY":"HOME"}</span>`;
+    const bits = [];
+    if (g.m.kickoff_display) bits.push(g.m.kickoff_display);
+    const sh = g.m.spread_home;
+    if (sh!=null) { const sp = pick===g.home ? sh : -sh;
+      bits.push(Math.abs(sp)<0.05 ? "PK" : `${pick} ${sp>0?"+":""}${sp.toFixed(1)}`);
+      if (sp>0.5) warn = `<div class="warn">⚠ underdog by ${sp.toFixed(1)} — verify before locking</div>`; }
+    const ml = pick===g.home ? g.m.ml_home : g.m.ml_away;
+    if (ml!=null) bits.push(`ML ${ml>0?"+":""}${ml}`);
+    detail = bits.join(" · ");
+  }
+  const ou = D.win_totals[pick] ? `${D.win_totals[pick].toFixed(1)} O/U` : "";
+  const lockUI = locked
+    ? `<div class="actions"><button class="ghost" onclick="doUnlock('${e}','${leg}')">🔓 Unlock</button></div>`
+    : `<div class="actions">
+         <label class="ck"><input type="checkbox" id="ok-${e}" onchange="$('#lk-${e}').disabled=!this.checked"> confirm</label>
+         <button class="primary" id="lk-${e}" disabled onclick="doLock('${e}','${leg}','${pick}')">🔒 Lock ${pick}</button>
+       </div>`;
+  return `<div class="matchup">
+    <div class="mu-top"><span class="pill ${locked?'st-lock':'st-act'}">${locked?'🔒 LOCKED':'ACT — pick now'}</span><span class="ou">${ou}</span></div>
+    <div class="mu-team">${pick}${rec(pick)} ${opp}</div>
+    <div class="mu-detail">${detail}</div>
+    <div class="probwrap"><div class="probbar"><div class="probfill" style="width:${(p||0)*100}%"></div></div>
+      <div class="probnum">${pct(p)}</div></div>
+    ${warn}${opts.noLock ? "" : lockUI}
+  </div>`;
+}
+
+function rail(e, plan, probs, clickable=true) {
+  const ent = D.entries[e];
+  const tiles = D.loaded_legs.map(({id:lid, holiday}) => {
+    const locked = ent.picks[lid];
+    const planned = (plan[e]||{})[lid];
+    const icon = lid==="TXWEEK" ? "🎄" : lid==="XMASWEEK" ? "🎁" : "";
+    const bkt = effBucket(ent, lid);
+    let cls, team, sub;
+    if (locked)      { cls="locked"; team=`✓ ${locked}`; sub="locked"; }
+    else if (lid===D.current_leg && planned) { cls="now"; team=planned; sub=pct((probs[lid]||{})[planned]); }
+    else if (holiday && planned) { cls="hol"; team=planned; sub=pct((probs[lid]||{})[planned]); }
+    else if (planned) { cls="plan"; team=planned; sub=pct((probs[lid]||{})[planned]); }
+    else { cls="gap"; team="·"; sub=""; }
+    const chip = (!holiday && bkt) ? `<div class="tile-chip" style="color:${BCOLOR[bkt]}">${BSHORT[bkt]}</div>` : "";
+    const click = clickable ? `onclick="openPlanner('${e}','${lid}')"` : "";
+    return `<div class="tile ${cls}" ${click} title="plan ${lid}">
+      <div class="tile-week">${icon}${lid}</div><div class="tile-team">${team}</div>
+      <div class="tile-sub">${sub}</div>${chip}</div>`;
+  });
+  return `<div class="rail">${tiles.join("")}</div>`;
+}
+
+function holidayChips(e) {
+  const ent = D.entries[e];
+  return `<div class="hwrap">` + ["TXWEEK","XMASWEEK"].map(hw => {
+    const icon = hw==="TXWEEK" ? "🎄" : "🎁";
+    const pool = D.pools[hw];
+    const locked = ent.picks[hw];
+    const remaining = pool.filter(t => !ent.used.includes(t));
+    const body = locked ? `locked <b>${locked}</b>`
+      : remaining.length===0 ? `<b style="color:var(--red)">EXHAUSTED</b>`
+      : `<b>${remaining.length}</b>/${pool.length} live`;
+    return `<span class="hchip">${icon} ${hw}: ${body}</span>`;
+  }).join(" ") + `</div>`;
+}
+
+/* ---------- views ---------- */
+function renderView() {
+  const m = $("#main");
+  m.innerHTML = "";
+  const ids = Object.keys(D.entries).sort();
+  for (const b of document.querySelectorAll("#nav button")) b.classList.remove("on");
+  renderNav();
+
+  if (route === "board") {
+    m.innerHTML = `<div class="grid">` + ids.map(e => {
+      const ent = D.entries[e];
+      const bkt = ent.bucket;
+      return `<div class="entry">
+        <div class="e-head"><span class="e-dot" style="background:${ent.alive?'var(--green)':'var(--red)'}"></span>
+          <span class="e-name">ENTRY ${e}</span>
+          <button class="chip" style="color:${BCOLOR[bkt]};border-color:${BCOLOR[bkt]}44"
+            onclick="cycleBucket('${e}')" title="click to change default bucket">${BSHORT[bkt]||"NO BUCKET"}</button></div>
+        ${matchupCard(e)}
+        ${rail(e, D.plan, D.probs)}
+        ${holidayChips(e)}
+      </div>`;
+    }).join("") + `</div>
+    <h2>DECORRELATION</h2><div>${decChips()}</div>
+    <p class="mut" style="margin-top:8px">Tap any week tile to open its planner. Bucket chip cycles chalk → contrarian → conserve.</p>`;
+  }
+
+  else if (route.startsWith("entry-")) {
+    const e = route.slice(6);
+    const leg = planSel[e] || D.current_leg;
+    m.innerHTML = `
+      <h2>ENTRY ${e} · SEASON</h2>
+      ${rail(e, D.plan, D.probs)}
+      <h2>THIS WEEK</h2>
+      ${matchupCard(e)}
+      <h2>PLAN ANY WEEK</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="plan-leg" onchange="openPlanner('${e}', this.value)">
+          ${D.loaded_legs.map(({id}) => `<option value="${id}" ${id===leg?"selected":""}>${weekLabel(e,id)}</option>`).join("")}
+        </select>
+        <span class="mut">pick a week — explore alternatives, pin, or unlock</span>
+      </div>
+      <div id="planner"></div>`;
+    loadPlanner(e, leg);
+  }
+
+  else if (route === "market") {
+    m.innerHTML = `<h2>LINE MOVEMENT</h2>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select id="mkt-leg">${D.loaded_legs.map(({id}) =>
+          `<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
+        <button class="primary" onclick="loadMarket()">Load</button>
+        <button class="ghost" onclick="ingestLines()">Ingest lines → solver</button>
+      </div><div id="mkt"></div>`;
+    loadMarket();
+  }
+
+  else if (route === "tools") {
+    m.innerHTML = `
+      <h2>SOLVER DIALS</h2>
+      <div class="dials">
+        ${dial("horizon","Horizon (weeks planned)",1,17,1)}
+        ${dial("min_prob","Weekly floor",0.40,0.70,0.01)}
+        ${dial("holiday_min_prob","Holiday floor",0.40,0.65,0.01)}
+        ${dial("future_value_weight","Team conservation",0,1.2,0.05)}
+        <div class="dial"><label>Endgame (straddles)</label>
+          <label class="ck"><input type="checkbox" ${dials.endgame?"checked":""}
+            onchange="dials.endgame=this.checked;saveDials()"> enable</label></div>
+      </div>
+      <h2>WEEK CONTROL</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="adv-leg">${D.loaded_legs.map(({id}) =>
+          `<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
+        <button class="ghost" onclick="advanceWeek()">Set current week</button>
+      </div>
+      <h2>ELO NUDGE</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <select id="nudge-team">${Object.keys(D.win_totals).sort().map(t=>`<option>${t}</option>`).join("")}</select>
+        <input type="number" id="nudge-delta" value="0" step="5" style="width:90px">
+        <input type="text" id="nudge-note" placeholder="note (logged)" style="flex:1;min-width:160px">
+        <button class="ghost" onclick="doNudge()">Apply</button>
+      </div>
+      <h2>INJURIES</h2>
+      <button class="ghost" onclick="loadInjuries()">Fetch high-severity report</button>
+      <div id="inj"></div>
+      <h2>INTEGRITY CHECK</h2>
+      <button class="primary" onclick="runCheck()">Run check</button>
+      <div id="chk"></div>`;
+  }
+}
+
+function weekLabel(e, lid) {
+  const ent = D.entries[e];
+  const icon = lid==="TXWEEK" ? "🎄 " : lid==="XMASWEEK" ? "🎁 " : "";
+  if (ent.picks[lid]) return `${icon}${lid} — 🔒 ${ent.picks[lid]}`;
+  const t = (D.plan[e]||{})[lid];
+  const bkt = effBucket(ent, lid) || "—";
+  if (t) { const p = (D.probs[lid]||{})[t];
+    return `${icon}${lid} — ${t} (${p?Math.round(p*100)+"%":"?"}) · ${bkt}${lid===D.current_leg?" ← now":""}`; }
+  return `${icon}${lid} — no pick above floor · ${bkt}`;
+}
+function decChips() {
+  const ids = Object.keys(D.entries).sort();
+  const scope = new Set([...(D.meta.near_term||[]), ...(D.meta.holiday||[])]);
+  return D.loaded_legs.filter(({id}) => scope.has(id)).slice(0,10).map(({id:lid}) => {
+    const teams = ids.map(e => D.entries[e].picks[lid] || (D.plan[e]||{})[lid]).filter(Boolean);
+    if (teams.length < 2) return "";
+    const ok = new Set(teams).size === teams.length;
+    return `<span class="dchip ${ok?'ok':'bad'}">${lid}: ${teams.join(" / ")}</span>`;
+  }).join("");
+}
+function dial(key, label, min, max, step) {
+  return `<div class="dial"><label>${label} — <span class="dv" id="dv-${key}">${dials[key]}</span></label>
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${dials[key]}"
+      oninput="$('#dv-${key}').textContent=this.value"
+      onchange="dials['${key}']=parseFloat(this.value);saveDials()"></div>`;
+}
+function saveDials() { localStorage.setItem("dials", JSON.stringify(dials)); toast("re-solving…"); refresh(); }
+
+/* ---------- planner ---------- */
+function openPlanner(e, leg) {
+  planSel[e] = leg;
+  if (route !== `entry-${e}`) { go(`entry-${e}`); }
+  else { const sel = $("#plan-leg"); if (sel) sel.value = leg; loadPlanner(e, leg); }
+}
+async function loadPlanner(e, leg) {
+  const el = $("#planner");
+  el.innerHTML = `<p class="mut">loading ${leg}…</p>`;
+  try {
+    const P = await api(`/api/plan?entry=${e}&leg=${leg}&${qs()}`);
+    if (P.locked) {
+      el.innerHTML = `<div class="banner info">${leg} is locked on <b>${P.locked_team}</b>.</div>
+        <label class="ck"><input type="checkbox" id="unlock-ok"> confirm unlock</label>
+        <div class="actions"><button class="ghost" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">🔓 Unlock ${leg}</button></div>`;
+      return;
+    }
+    if (!P.alternatives.length) {
+      el.innerHTML = `<div class="banner info">No teams above the floor for ${leg}. Lower the weekly floor in Tools.</div>`;
+      return;
+    }
+    el.innerHTML = `<table><thead><tr>
+        <th>Team</th><th>Win%</th><th>O/U</th><th>Pool</th><th>Stack</th><th>FV</th><th></th>
+      </tr></thead><tbody>` +
+      P.alternatives.map(a => `<tr class="${a.is_rec?'rec':''} clickable" onclick="runWhatIf('${e}','${leg}','${a.team}')">
+        <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
+        <td>${pct(a.win_prob)}</td>
+        <td>${a.ou!=null?a.ou.toFixed(1):"—"}</td>
+        <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
+        <td>${a.stacks_with.join(",")||"—"}</td>
+        <td>${a.fv>=0.8?"🛑":a.fv>=0.35?"🤔":"✅"}</td>
+        <td class="mut">explore →</td>
+      </tr>`).join("") + `</tbody></table>
+      <p class="mut">★ = model pick · click a row to see how choosing it reshapes the season</p>
+      <div id="whatif"></div>`;
+  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+async function runWhatIf(e, leg, team) {
+  const el = $("#whatif");
+  el.innerHTML = `<p class="mut">re-solving season around ${team}…</p>`;
+  try {
+    const W = await api("/api/whatif", {entry:e, leg, team, ...dials});
+    if (W.status !== "Optimal") {
+      el.innerHTML = `<div class="banner err">Solver: ${W.status}. This pick likely breaks a hard
+        constraint (e.g. exhausts a holiday pool). Strong signal NOT to take it.</div>`;
+      return;
+    }
+    const d = (W.p_choice!=null && W.p_model!=null) ? W.p_choice - W.p_model : null;
+    const ids = Object.keys(D.entries).sort();
+    el.innerHTML = `
+      <div class="metricrow">
+        <div class="metric"><div class="lbl">MODEL · ${W.model_pick||"—"}</div><div class="val">${pct(W.p_model)}</div></div>
+        <div class="metric"><div class="lbl">YOURS · ${team}</div><div class="val">${pct(W.p_choice)}
+          ${d!=null?`<span class="${d>=0?'delta-up':'delta-dn'}">${d>=0?"+":""}${(d*100).toFixed(1)}%</span>`:""}</div></div>
+      </div>
+      ${W.ripple.length ? `<div class="banner info">Portfolio ripple: ` +
+        W.ripple.map(r=>`E${r.entry} ${r.leg}: ${r.before}→${r.after}`).join(" · ") + `</div>` : ""}
+      <table><thead><tr><th>Week</th><th>Current plan</th><th>With ${team}</th><th></th></tr></thead><tbody>` +
+      W.diff.map(r => `<tr><td>${r.leg}</td>
+        <td>${r.before?`${r.before} (${Math.round((r.pb||0)*100)}%)`:"—"}</td>
+        <td>${r.after?`${r.after} (${Math.round((r.pa||0)*100)}%)`:"—"}</td>
+        <td>${r.changed?"🔄":""}</td></tr>`).join("") + `</tbody></table>
+      <label class="ck"><input type="checkbox" id="pin-ok"
+        onchange="$('#pin-btn').disabled=!this.checked"> confirm</label>
+      <div class="actions">
+        <button class="primary" id="pin-btn" disabled onclick="doLock('${e}','${leg}','${team}')">
+          ${leg===D.current_leg?`🔒 Lock ${team}`:`📌 Pin ${team} for ${leg}`}</button>
+      </div>`;
+  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+
+/* ---------- actions ---------- */
+async function doLock(e, leg, team) {
+  try { await api("/api/lock", {entry:e, leg, team}); toast(`Locked ${team} · ${leg}`); await refresh(); }
+  catch (err) { toast(`⚠ ${err.message}`); }
+}
+async function doUnlock(e, leg) {
+  try { const r = await api("/api/unlock", {entry:e, leg}); toast(`Unlocked ${r.removed} · ${leg}`); await refresh(); }
+  catch (err) { toast(`⚠ ${err.message}`); }
+}
+async function cycleBucket(e) {
+  const cur = D.entries[e].bucket;
+  const next = BUCKETS[(BUCKETS.indexOf(cur)+1) % BUCKETS.length] || "chalk";
+  await api("/api/bucket", {entry:e, bucket:next});
+  toast(`Entry ${e} → ${next}`); await refresh();
+}
+async function advanceWeek() {
+  await api("/api/advance", {leg: $("#adv-leg").value});
+  toast("current week updated"); await refresh();
+}
+async function doNudge() {
+  const delta = parseFloat($("#nudge-delta").value);
+  if (!delta) { toast("delta is 0"); return; }
+  const r = await api("/api/nudge", {team:$("#nudge-team").value, delta, note:$("#nudge-note").value||null});
+  toast(`nudged (cumulative ${r.cumulative>0?"+":""}${r.cumulative})`); await refresh();
+}
+async function loadMarket() {
+  const el = $("#mkt"); el.innerHTML = `<p class="mut">loading…</p>`;
+  try {
+    const M = await api(`/api/market?leg=${$("#mkt-leg").value}`);
+    el.innerHTML = `<table><thead><tr><th>Game</th><th>Kickoff</th><th>Spread</th>
+      <th>ML home</th><th>ML away</th><th>Total</th><th>Money →</th></tr></thead><tbody>` +
+      M.rows.map(r => `<tr>
+        <td><b>${r.away} @ ${r.home}</b></td><td class="mut">${r.kickoff||"—"}</td>
+        <td>${r.spread_open!=null&&r.spread!=null?`${r.spread_open} → ${r.spread}`:(r.spread??"—")}</td>
+        <td>${r.ml_home_open!=null?`${r.ml_home_open} → ${r.ml_home}`:(r.ml_home??"—")}</td>
+        <td>${r.ml_away_open!=null?`${r.ml_away_open} → ${r.ml_away}`:(r.ml_away??"—")}</td>
+        <td>${r.total??"—"}</td><td>${r.moving||"—"}</td></tr>`).join("") + `</tbody></table>
+      <p class="mut">Home spread more negative or ML shortening = money on that side.</p>`;
+  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+async function ingestLines() {
+  try { const r = await api("/api/lines", {leg:$("#mkt-leg").value});
+        toast(`ingested ${r.applied} lines (${r.skipped} skipped)`); await refresh(); }
+  catch (err) { toast(`⚠ ${err.message}`); }
+}
+async function loadInjuries() {
+  const el = $("#inj"); el.innerHTML = `<p class="mut">fetching…</p>`;
+  try {
+    const I = await api("/api/injuries?severity=high");
+    if (!I.teams.length) { el.innerHTML = `<p class="mut">no high-severity injuries right now</p>`; return; }
+    el.innerHTML = I.teams.slice(0,12).map(t =>
+      `<p><b>${t.team}</b> <span class="mut">(alert ${t.score})</span> — ` +
+      t.rows.slice(0,4).map(r=>`${r.position} ${r.name} (${r.status})`).join("; ") + `</p>`).join("");
+  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+async function runCheck() {
+  const el = $("#chk"); el.innerHTML = `<p class="mut">running…</p>`;
+  const C = await api("/api/check");
+  el.innerHTML = C.passes.map(p=>`<div class="banner ok">✓ ${p}</div>`).join("") +
+                 C.failures.map(f=>`<div class="banner err">✗ ${f}</div>`).join("");
+}
+
+/* ---------- boot ---------- */
+window.addEventListener("hashchange", () => { route = location.hash.slice(1) || "board"; renderView(); });
+refresh().catch(err => { $("#main").innerHTML = `<div class="banner err">Failed to load: ${err.message}</div>`; });
+</script>
+</body>
+</html>

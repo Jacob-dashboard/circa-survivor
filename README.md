@@ -5,11 +5,21 @@ MILP solver (PuLP/HiGHS) over Elo + DraftKings moneyline blend, with rolling-hor
 planning toward the Thanksgiving and Christmas Contest Weeks. See [SPEC.md](SPEC.md)
 for the full design.
 
-## Run the UI
+## Run the HTML app (primary UI)
 
 ```bash
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn survivor.webapp:app --host 0.0.0.0 --port 8600
+```
+
+Open http://localhost:8600 (or http://<mac-ip>:8600 from your phone on the
+same Wi-Fi). FastAPI backend (`survivor/webapp.py`) + dependency-free SPA
+(`survivor/webui/index.html`). Same `season_state.json` as the CLI/Streamlit.
+
+## Run the Streamlit UI (backup)
+
+```bash
 .venv/bin/streamlit run survivor/ui.py
 ```
 
