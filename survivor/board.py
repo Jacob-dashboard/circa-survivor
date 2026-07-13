@@ -34,6 +34,7 @@ _BUCKET_CHIP = {
     "chalk":        ("CHALK", GREEN),
     "contrarian":   ("CONTRARIAN", RED),
     "conservation": ("CONSERVE", "#14b8a6"),
+    "neutral":      ("NEUTRAL", "#8b93a7"),
     None:           ("NO BUCKET", MUTED),
 }
 

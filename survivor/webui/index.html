@@ -195,6 +195,26 @@ input[type=number], input[type=text] { background:var(--panel2); color:var(--tex
   opacity:0; transition:opacity .25s; pointer-events:none; z-index:99; box-shadow:var(--shadow); }
 .toast.show { opacity:1; }
 @media (max-width:640px) { .weekbox { font-size:1.1rem; } .mu-team { font-size:1.35rem; } }
+
+/* projection picker */
+.seg { display:inline-flex; background:var(--panel); border:1px solid var(--line);
+  border-radius:999px; padding:3px; gap:2px; }
+.seg button { font:inherit; font-size:.76rem; font-weight:600; color:var(--dim);
+  background:none; border:none; border-radius:999px; padding:7px 14px; cursor:pointer; }
+.seg button.on { color:#141310; background:linear-gradient(135deg,var(--amber),var(--amber-deep)); }
+/* teams matrix */
+.tmx { overflow:auto; border:1px solid var(--line); border-radius:var(--r);
+  max-height:70vh; }
+.tmx table { margin:0; border:none; border-radius:0; }
+.tmx thead th { position:sticky; top:0; z-index:3; }
+.tmx thead th:first-child { left:0; z-index:4; }
+.tmx tbody td:first-child, .tmx tbody th:first-child { position:sticky; left:0;
+  background:var(--panel2); z-index:2; font-weight:700; }
+.tmx td { white-space:nowrap; font-size:.72rem; padding:7px 9px; }
+.cell-g { background:rgba(74,222,128,.14); }
+.cell-a { background:rgba(224,177,92,.12); }
+.cell-r { background:rgba(248,113,113,.10); }
+.rowused td { opacity:.35; text-decoration:line-through; }
 </style>
 </head>
 <body>
@@ -213,9 +233,9 @@ input[type=number], input[type=text] { background:var(--panel2); color:var(--tex
 
 <script>
 const $ = (s, el=document) => el.querySelector(s);
-const BUCKETS = ["chalk","contrarian","conservation"];
-const BC = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)"};
-const BSHORT = {chalk:"Chalk", contrarian:"Contra", conservation:"Conserve"};
+const BUCKETS = ["chalk","contrarian","conservation","neutral"];
+const BC = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)", neutral:"var(--dim)"};
+const BSHORT = {chalk:"Chalk", contrarian:"Contra", conservation:"Conserve", neutral:"Neutral"};
 const GUIDE = [
   ["Chalk","var(--green)",
    "Take the safest favorite, full stop. This entry's job is pure survival — it rides the highest win probability available every week.",
@@ -223,6 +243,9 @@ const GUIDE = [
   ["Contrarian","var(--red)",
    "Fade the crowd. Avoids the most-picked favorite so that when a chalk team loses, this entry gains ground on the whole field instead of dying with it.",
    "How it's built: heavy popularity penalty (1.5×) against each week's top-prob team · normal conservation (1.0×)."],
+  ["Neutral","var(--dim)",
+   "No strategy shaping at all — pure win probability, nothing else. Use it to see the raw model view for a week, or run whole projections unshaped.",
+   "How it's built: zero popularity penalty · zero conservation. Objective = maximize log(win prob), untouched."],
   ["Conserve","var(--teal)",
    "Save the studs. Burns low-value teams (bad season win totals) in their rare good spots and protects elite + holiday-pool teams for when they're needed.",
    "How it's built: 2.2× future-value penalty — FV = (win total − 8.5)/3 + 0.3 per holiday pool · mild popularity fade (0.3×)."],
@@ -262,7 +285,7 @@ function renderHeader(){
 function renderNav(){
   const ids = Object.keys(D.entries).sort();
   const tabs = [["board","Board"], ...ids.map(e=>[`entry-${e}`,`Entry ${e}`]),
-                ["market","Market"], ["tools","Tools"]];
+                ["teams","Teams"], ["market","Market"], ["tools","Tools"]];
   $("#nav").innerHTML = tabs.map(([r,l]) =>
     `<button class="${route===r?'on':''}" onclick="go('${r}')">${l}</button>`).join("");
 }
@@ -275,20 +298,30 @@ function gameFor(gm, team){ for (const [k,m] of Object.entries(gm||{})) {
   const [a,h]=k.split("|"); if (team===a||team===h) return {away:a,home:h,m}; } return null; }
 const effB = (ent,leg) => (ent.leg_buckets||{})[leg] || ent.bucket;
 
+
+const HOPTS = [[1,"This week"],[3,"3 weeks"],[6,"6 weeks"],[17,"Full season"]];
+function projPicker(){
+  return `<div style="display:flex;align-items:center;gap:12px;margin:12px 0 4px;flex-wrap:wrap">
+    <span class="dim" style="font-weight:600">Projection</span>
+    <div class="seg">${HOPTS.map(([v,l]) =>
+      `<button class="${dials.horizon==v?'on':''}" onclick="dials.horizon=${v};saveDials()">${l}</button>`).join("")}</div>
+    <span class="dim">how far the model maps out — holiday reservations always shown</span></div>`;
+}
+
 function guidePanel(open=false){
   return `<details class="guidewrap"${open?" open":""}><summary>Strategy guide — what each mode does</summary>
     <div class="guide">${GUIDE.map(([n,c,what,how]) =>
       `<div class="gcard" style="border-top-color:${c}"><h4 style="color:${c}">${n}</h4>
        <p>${what}</p><div class="how">${how}</div></div>`).join("")}</div>
     <p class="dim" style="margin:8px 0 2px">Set a default per entry (ticket header) and override any single
-    week in the STRATEGY BY WEEK strip — the season plan re-solves instantly around your choices.
+    week in the Strategy by week strip — Neutral turns shaping off entirely; leaving a week (entry default) inherits the header setting — the season plan re-solves instantly around your choices.
     Holiday weeks are exempt: conserved teams get spent there by design.</p></details>`;
 }
 
 function bucketSelect(e, leg=null){
   const ent = D.entries[e];
   const cur = leg ? (ent.leg_buckets||{})[leg]||"" : ent.bucket||"";
-  const opts = (leg ? [["","(default)"]] : [["","— none —"]])
+  const opts = (leg ? [["","(default)"]] : [["","Balanced (unset)"]])
     .concat(BUCKETS.map(b=>[b,BSHORT[b]]));
   return `<select onchange="setBucket('${e}', this.value, ${leg?`'${leg}'`:"null"})"
     style="${leg?'':'font-weight:700;'}color:${BC[cur]||'var(--dim)'}">
@@ -388,7 +421,7 @@ function renderView(){
   renderNav();
 
   if (route==="board"){
-    m.innerHTML = guidePanel(false) +
+    m.innerHTML = guidePanel(false) + projPicker() +
       `<div class="grid" style="margin-top:12px">` + ids.map(e => {
         const ent = D.entries[e];
         return `<div class="ticket" style="border-left-color:${BC[ent.bucket]||'var(--amber)'}">
@@ -423,6 +456,23 @@ function renderView(){
         </select><span class="dim">explore alternatives · pin · unlock</span></div>
       <div id="planner"></div>`;
     loadPlanner(e, leg);
+  }
+
+
+  else if (route==="teams"){
+    const ids2 = Object.keys(D.entries).sort();
+    const sel = localStorage.getItem("teams_entry") || ids2[0];
+    const hideUsed = localStorage.getItem("teams_hideused") === "1";
+    m.innerHTML = `<h2>Team schedules — rest of season</h2>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <select id="tm-entry" onchange="localStorage.setItem('teams_entry',this.value);renderView()">
+          ${ids2.map(e=>`<option value="${e}" ${e===sel?"selected":""}>Availability for Entry ${e}</option>`).join("")}
+        </select>
+        <label class="ck"><input type="checkbox" ${hideUsed?"checked":""}
+          onchange="localStorage.setItem('teams_hideused', this.checked?'1':'0');renderView()"> hide used teams</label>
+        <span class="dim">cell = opponent + win% · green ≥60 · gold 50–60 · red <50 · blank = bye</span>
+      </div><div id="tmx" class="tmx"><p class="dim" style="padding:14px">loading…</p></div>`;
+    loadTeams(sel, hideUsed);
   }
 
   else if (route==="market"){
@@ -576,6 +626,35 @@ async function doNudge(){
   if (!delta){ toast("delta is 0"); return; }
   const r = await api("/api/nudge",{team:$("#nudge-team").value, delta, note:$("#nudge-note").value||null});
   toast(`nudged (cumulative ${r.cumulative>0?"+":""}${r.cumulative})`); await refresh(); }
+
+async function loadTeams(entry, hideUsed){
+  const el = $("#tmx");
+  try {
+    const T = await api(`/api/teams?entry=${entry}`);
+    const weeks = T.weeks;
+    let names = Object.keys(T.teams);
+    names.sort((a,b) => (T.teams[a].used?1:0)-(T.teams[b].used?1:0)
+      || T.teams[b].ou - T.teams[a].ou || a.localeCompare(b));
+    if (hideUsed) names = names.filter(t=>!T.teams[t].used);
+    const head = `<tr><th>Team</th><th class="num">O/U</th>` +
+      weeks.map(w=>`<th>${w.holiday?(w.id==="TXWEEK"?"🎄":"🎁"):""}${w.id}</th>`).join("") + `</tr>`;
+    const rows = names.map(t => {
+      const info = T.teams[t];
+      const recStr = info.record?` <span class="dim">(${info.record})</span>`:"";
+      const pools = (info.in_tx?"🎄":"")+(info.in_xmas?"🎁":"");
+      const cells = weeks.map(w => {
+        const g = info.schedule[w.id];
+        if (!g) return `<td class="dim">—</td>`;
+        const cls = g.p>=0.6?"cell-g":g.p>=0.5?"cell-a":"cell-r";
+        return `<td class="${cls}">${g.home?"vs":"@"} ${g.opp} <b>${Math.round(g.p*100)}%</b></td>`;
+      }).join("");
+      return `<tr class="${info.used?'rowused':''}"><th>${t}${pools}${recStr}</th>
+        <td class="num">${info.ou.toFixed(1)}</td>${cells}</tr>`;
+    }).join("");
+    el.innerHTML = `<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+
 async function loadMarket(){
   const el=$("#mkt"); el.innerHTML=`<p class="dim">loading…</p>`;
   try {

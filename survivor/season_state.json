@@ -97,16 +97,17 @@
       "bucket": "contrarian",
       "leg_buckets": {
         "W1": "conservation",
-        "W2": "chalk",
         "W3": "conservation",
-        "W12": "chalk"
+        "W12": "chalk",
+        "W9": "conservation"
       }
     },
     "1": {
       "alive": true,
       "used_teams": [],
       "picks": {},
-      "bucket": "contrarian"
+      "bucket": "contrarian",
+      "leg_buckets": {}
     }
   },
   "notes": {}

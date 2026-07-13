@@ -207,7 +207,7 @@ def cmd_bucket(state, args):
     if args.entry not in state["entries"]:
         valid = ", ".join(sorted(state["entries"]))
         raise SystemExit(f"Unknown entry {args.entry!r}. Valid entries: {valid}")
-    if args.bucket not in {"chalk", "contrarian", "conservation"}:
+    if args.bucket not in {"chalk", "contrarian", "conservation", "neutral"}:
         raise SystemExit("Bucket must be one of: chalk, contrarian, conservation")
     state_mod.set_bucket(state, args.entry, args.bucket)
     state_mod.save_state(state)
@@ -438,7 +438,7 @@ def _build_parser():
 
     p_bk = sub.add_parser("bucket", help="set an entry's strategy bucket")
     p_bk.add_argument("entry")
-    p_bk.add_argument("bucket", choices=["chalk", "contrarian", "conservation"])
+    p_bk.add_argument("bucket", choices=["chalk", "contrarian", "conservation", "neutral"])
 
     p_ln = sub.add_parser("line", help="add a moneyline override for a game")
     p_ln.add_argument("leg")

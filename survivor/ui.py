@@ -157,7 +157,7 @@ with st.sidebar:
     for e in entry_ids:
         entry = state["entries"][e]
         current = entry.get("bucket")
-        options = ["—", "chalk", "contrarian", "conservation"]
+        options = ["—", "chalk", "contrarian", "conservation", "neutral"]
         idx = options.index(current) if current in options else 0
         n_over = len(entry.get("leg_buckets", {}))
         label = f"Entry {e}" + (f" ({n_over} week override{'s' if n_over != 1 else ''})" if n_over else "")
@@ -386,8 +386,8 @@ _NODE_STYLES = {
 }
 
 
-_BUCKET_SHORT = {"chalk": "chalk", "contrarian": "contrarian", "conservation": "conserve"}
-_BUCKET_COLOR = {"chalk": "#21a366", "contrarian": "#c0392b", "conservation": "#d4a017"}
+_BUCKET_SHORT = {"chalk": "chalk", "contrarian": "contrarian", "conservation": "conserve", "neutral": "neutral"}
+_BUCKET_COLOR = {"chalk": "#21a366", "contrarian": "#c0392b", "conservation": "#d4a017", "neutral": "#8b93a7"}
 
 
 def _roadmap_node(label, team, prob, status, icon="", bucket=None):
@@ -787,7 +787,7 @@ for tab, e in zip(entry_tabs, entry_ids):
             editable = [lid for lid in loaded_legs[start:] if lid not in sched.HOLIDAY_WEEKS]
             for lid in editable:
                 is_locked = lid in entry["picks"]
-                opts = ["(default)", "chalk", "contrarian", "conservation"]
+                opts = ["(default)", "chalk", "contrarian", "conservation", "neutral"]
                 cur = leg_buckets.get(lid)
                 idx = opts.index(cur) if cur in opts else 0
                 lc, rc = st.columns([1, 3])

@@ -339,8 +339,8 @@ def bucket(body: BucketReq):
     if body.entry not in state["entries"]:
         raise HTTPException(404, f"unknown entry {body.entry}")
     b = body.bucket or None
-    if b is not None and b not in ("chalk", "contrarian", "conservation"):
-        raise HTTPException(400, "bucket must be chalk|contrarian|conservation")
+    if b is not None and b not in ("chalk", "contrarian", "conservation", "neutral"):
+        raise HTTPException(400, "bucket must be chalk|contrarian|conservation|neutral")
     if body.leg:
         state_mod.set_leg_bucket(state, body.entry, body.leg, b)
     else:
@@ -439,6 +439,53 @@ def injuries(severity: str = "high"):
          "rows": ingest_injuries.sort_by_priority(by_team[t])}
         for t in teams
     ]}
+
+
+@app.get("/api/teams")
+def teams(entry: Optional[str] = None):
+    """Every team's remaining schedule with per-week win probabilities.
+
+    Powers the Teams matrix page: rows = teams, columns = weeks, cell =
+    opponent + P(win). Probabilities come straight from the probability
+    engine (Elo + any stored moneyline overrides) — no MILP involved, so
+    this is independent of the projection horizon.
+
+    `entry` marks which teams that entry has already used (burned).
+    """
+    state = state_mod.load_state()
+    used = set()
+    if entry is not None:
+        if entry not in state["entries"]:
+            raise HTTPException(404, f"unknown entry {entry}")
+        used = set(state["entries"][entry]["used_teams"])
+
+    legs = _loaded_legs()
+    probs = {lid: solver.leg_probs_live(state, lid) for lid in legs}
+    records = _records_json()
+
+    sched_map = {t: {} for t in data.TEAMS}
+    for lid in legs:
+        for away, home in sched.SCHEDULE[lid]["games"]:
+            sched_map[away][lid] = {"opp": home, "home": False,
+                                    "p": round(probs[lid].get(away, 0), 4)}
+            sched_map[home][lid] = {"opp": away, "home": True,
+                                    "p": round(probs[lid].get(home, 0), 4)}
+
+    return {
+        "weeks": [{"id": lid, "holiday": lid in sched.HOLIDAY_WEEKS} for lid in legs],
+        "teams": {
+            t: {
+                "ou": data.WIN_TOTALS[t][0],
+                "fv": round(solver.future_value(t), 2),
+                "record": records.get(t),
+                "used": t in used,
+                "in_tx": t in sched.TXWEEK_POOL,
+                "in_xmas": t in sched.XMASWEEK_POOL,
+                "schedule": sched_map[t],
+            }
+            for t in data.TEAMS
+        },
+    }
 
 
 @app.get("/api/check")
