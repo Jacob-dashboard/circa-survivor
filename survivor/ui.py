@@ -44,6 +44,50 @@ st.set_page_config(
     layout="wide",
 )
 
+# --- Visual polish -----------------------------------------------------------
+# Curated, low-risk styling: real typography (Inter), softer cards, cleaner
+# chrome. Colors come from .streamlit/config.toml (navy + Vegas gold).
+# Deliberately targeted selectors only — no layout overrides.
+st.markdown(
+    """
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+      html, body, [data-testid="stAppViewContainer"] * {
+          font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      }
+      h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+      h2 {
+          border-bottom: 1px solid rgba(232, 179, 57, .30);
+          padding-bottom: .35rem;
+      }
+
+      /* Entry cards and bordered containers: softer, elevated */
+      div[data-testid="stVerticalBlockBorderWrapper"] {
+          border-radius: 14px;
+          border-color: rgba(232, 179, 57, .18) !important;
+          background: linear-gradient(180deg, rgba(232,179,57,.03), rgba(20,26,41,.0));
+      }
+
+      /* Buttons: rounded, confident */
+      .stButton > button {
+          border-radius: 10px;
+          font-weight: 600;
+      }
+
+      /* Metrics: heavier numbers */
+      div[data-testid="stMetricValue"] { font-weight: 700; }
+
+      /* Tab labels: a touch more presence */
+      button[role="tab"] p { font-weight: 600; }
+
+      /* Hide Streamlit footer for a cleaner app feel */
+      footer { visibility: hidden; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Load state defensively — a malformed/empty season_state.json on a fresh host
 # should not produce a blank page. Fall back to a clean default and say so.
 try:
@@ -334,11 +378,11 @@ def render_entry_card(entry_idx, compact=False, key_prefix="tw"):
 
 _NODE_STYLES = {
     # status: (border, background, opacity)
-    "locked":  ("2px solid #21a366", "rgba(33,163,102,.12)", "1"),
-    "current": ("3px solid #1c83e1", "rgba(28,131,225,.15)", "1"),
-    "planned": ("1.5px solid #808495", "rgba(128,132,149,.08)", ".95"),
-    "holiday": ("2px solid #d4a017", "rgba(212,160,23,.12)", "1"),
-    "gap":     ("1px dashed #80849566", "transparent", ".6"),
+    "locked":  ("2px solid #2ecc71", "rgba(46,204,113,.10)", "1"),
+    "current": ("3px solid #e8b339", "rgba(232,179,57,.14)", "1"),      # gold = act now
+    "planned": ("1.5px solid #5c6478", "rgba(92,100,120,.10)", ".95"),
+    "holiday": ("2px solid #8b5cf6", "rgba(139,92,246,.12)", "1"),      # violet = holiday
+    "gap":     ("1px dashed #5c647866", "transparent", ".6"),
 }
 
 
@@ -446,8 +490,8 @@ def render_roadmap(entry_idx, res_x=None, probs_x=None, state_x=None, meta_x=Non
     st.markdown(html, unsafe_allow_html=True)
     if show_legend:
         st.caption(
-            "✓ locked · blue = this week (lock it) · gray = planned (re-solved weekly) · "
-            "gold = holiday reservation · ⋯ = solved later — **edit any node in "
+            "✓ locked · gold = this week (lock it) · gray = planned (re-solved weekly) · "
+            "violet = holiday reservation · ⋯ = solved later — **edit any node in "
             "🔀 Plan / edit any week below**"
         )
 
