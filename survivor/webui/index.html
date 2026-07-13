@@ -6,187 +6,200 @@
 <title>Circa Survivor 2026</title>
 <style>
 /* ============================================================
-   v2 — "big board" design language. Sportsbook wall, not a
-   dashboard: condensed caps for teams, mono LED numerals,
-   ticket cards with bucket-colored spines.
+   v2.1 — smooth skin. Inter everywhere, soft slate palette,
+   rounded surfaces, no scanlines, no mono numerals.
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root {
-  --bg:#0a0b0d; --panel:#101216; --panel2:#15181e; --cell:#0d0f13;
-  --line:#23262d; --line2:#2e323b;
-  --amber:#ffb020; --amber-dim:#8a6420;
-  --green:#22c55e; --red:#ef4444; --teal:#2dd4bf; --violet:#a78bfa;
-  --text:#e9eaec; --dim:#7c828d;
-  --cond:'Barlow Condensed',sans-serif; --mono:'JetBrains Mono',monospace;
+  --bg:#0f1117; --panel:#161923; --panel2:#1b1f2b; --cell:#1a1e29;
+  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+  --amber:#e0b15c; --amber-deep:#c99a3f;
+  --green:#4ade80; --red:#f87171; --teal:#5eead4; --violet:#a78bfa;
+  --text:#eef0f4; --dim:#9aa3b2;
+  --r:14px; --r-sm:10px;
+  --shadow:0 6px 24px rgba(0,0,0,.35);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; padding-bottom:70px; }
-body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
-  background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.012) 2px 4px); }
+body { background:var(--bg); color:var(--text);
+  font-family:'Inter',-apple-system,sans-serif; font-size:14px;
+  -webkit-font-smoothing:antialiased; padding-bottom:70px; }
 main, header, nav { position:relative; z-index:1; }
 
 /* ---- masthead ---- */
-header { padding:18px 18px 10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
-  border-bottom:2px solid var(--line); }
-.brand { font-family:var(--cond); font-weight:900; font-size:1.5rem; letter-spacing:.12em;
-  color:var(--amber); text-transform:uppercase; }
-.brand small { display:block; font-size:.6rem; letter-spacing:.35em; color:var(--dim); }
-.weekbox { font-family:var(--cond); font-weight:900; font-size:2.2rem; line-height:1;
-  border:2px solid var(--amber); color:var(--amber); padding:2px 14px; }
-.leds { margin-left:auto; display:flex; gap:14px; flex-wrap:wrap; }
-.led { display:flex; align-items:center; gap:6px; font-size:.62rem; letter-spacing:.1em;
-  text-transform:uppercase; color:var(--dim); }
-.led i { width:8px; height:8px; border-radius:50%; background:var(--green);
-  box-shadow:0 0 6px var(--green); }
-.led.warn i { background:var(--amber); box-shadow:0 0 6px var(--amber); }
-.led.bad i { background:var(--red); box-shadow:0 0 6px var(--red); }
+header { padding:20px 20px 14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.brand { font-weight:800; font-size:1.15rem; letter-spacing:-.01em; color:var(--text); }
+.brand small { display:block; font-size:.68rem; font-weight:500; color:var(--dim); letter-spacing:.02em; }
+.weekbox { font-weight:800; font-size:1.35rem; color:var(--bg);
+  background:linear-gradient(135deg,var(--amber),var(--amber-deep));
+  padding:6px 18px; border-radius:999px; box-shadow:var(--shadow); }
+.leds { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+.led { display:flex; align-items:center; gap:7px; font-size:.72rem; font-weight:600;
+  color:var(--dim); background:var(--panel); border:1px solid var(--line);
+  padding:6px 12px; border-radius:999px; }
+.led i { width:7px; height:7px; border-radius:50%; background:var(--green); }
+.led.warn i { background:var(--amber); }
+.led.bad i { background:var(--red); }
 
 /* ---- nav ---- */
-nav { display:flex; gap:0; overflow-x:auto; border-bottom:2px solid var(--line);
+nav { display:flex; gap:6px; overflow-x:auto; padding:6px 16px 14px;
   position:sticky; top:0; background:var(--bg); z-index:6; }
-nav button { flex:0 0 auto; background:none; border:none; border-right:1px solid var(--line);
-  color:var(--dim); font-family:var(--cond); font-weight:800; font-size:1rem;
-  letter-spacing:.12em; text-transform:uppercase; padding:12px 20px; cursor:pointer; }
-nav button.on { color:var(--bg); background:var(--amber); }
+nav button { flex:0 0 auto; background:var(--panel); border:1px solid var(--line);
+  color:var(--dim); font:inherit; font-weight:600; font-size:.88rem;
+  padding:9px 18px; border-radius:999px; cursor:pointer; transition:all .15s; }
+nav button:hover { color:var(--text); border-color:var(--line2); }
+nav button.on { color:#141310; background:linear-gradient(135deg,var(--amber),var(--amber-deep));
+  border-color:transparent; font-weight:700; }
 
-main { padding:16px 14px; max-width:1240px; margin:0 auto; }
+main { padding:8px 16px; max-width:1240px; margin:0 auto; }
 .view { display:none; } .view.on { display:block; }
 
-h2 { font-family:var(--cond); font-weight:900; font-size:1.15rem; letter-spacing:.14em;
-  text-transform:uppercase; color:var(--text); margin:22px 0 10px; display:flex; align-items:center; gap:10px; }
-h2::after { content:""; flex:1; height:1px; background:var(--line2); }
-.dim { color:var(--dim); font-size:.72rem; }
+h2 { font-weight:700; font-size:.95rem; letter-spacing:.01em; color:var(--text);
+  margin:22px 0 10px; display:flex; align-items:center; gap:12px; }
+h2::after { content:""; flex:1; height:1px; background:var(--line); }
+.dim { color:var(--dim); font-size:.76rem; }
 
 /* ---- strategy guide ---- */
-.guide { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; margin:10px 0 4px; }
-.gcard { background:var(--panel); border:1px solid var(--line); border-top:3px solid; padding:12px 14px; }
-.gcard h4 { font-family:var(--cond); font-weight:900; font-size:1.05rem; letter-spacing:.12em; }
-.gcard p { font-size:.72rem; color:var(--dim); margin-top:6px; line-height:1.5; }
-.gcard .how { margin-top:8px; font-size:.62rem; color:var(--text); background:var(--cell);
-  border:1px solid var(--line); padding:6px 8px; }
-details.guidewrap > summary { cursor:pointer; font-family:var(--cond); font-weight:800;
-  letter-spacing:.12em; text-transform:uppercase; color:var(--amber); font-size:.9rem;
-  padding:10px 0 2px; list-style:none; }
+.guide { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin:12px 0 4px; }
+.gcard { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:16px; }
+.gcard h4 { font-weight:700; font-size:.95rem; display:flex; align-items:center; gap:8px; }
+.gcard h4::before { content:""; width:9px; height:9px; border-radius:50%; background:currentColor; }
+.gcard p { font-size:.78rem; color:var(--dim); margin-top:8px; line-height:1.55; }
+.gcard .how { margin-top:10px; font-size:.7rem; color:var(--text); background:var(--cell);
+  border-radius:var(--r-sm); padding:8px 10px; line-height:1.5; }
+details.guidewrap > summary { cursor:pointer; font-weight:700; color:var(--amber);
+  font-size:.88rem; padding:10px 0 2px; list-style:none; }
 details.guidewrap > summary::before { content:"▸ "; }
 details.guidewrap[open] > summary::before { content:"▾ "; }
 
 /* ---- entry ticket ---- */
 .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:16px; }
-.ticket { background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--amber); }
-.t-head { display:flex; align-items:center; gap:10px; padding:10px 14px;
-  border-bottom:1px dashed var(--line2); }
-.t-head .nm { font-family:var(--cond); font-weight:900; font-size:1.2rem; letter-spacing:.14em; }
-.t-head .st { width:8px; height:8px; border-radius:50%; }
+.ticket { background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+  border-left:4px solid var(--amber); box-shadow:var(--shadow); overflow:hidden; }
+.t-head { display:flex; align-items:center; gap:10px; padding:14px 16px 10px; }
+.t-head .nm { font-weight:800; font-size:1.02rem; letter-spacing:.01em; }
+.t-head .st { width:9px; height:9px; border-radius:50%; }
 .t-head select { margin-left:auto; }
-.t-body { padding:12px 14px; }
+.t-body { padding:4px 16px 16px; }
 
 /* matchup */
-.mu { background:var(--cell); border:1px solid var(--line); padding:12px; margin-bottom:12px; }
-.mu-status { display:flex; justify-content:space-between; font-size:.62rem; letter-spacing:.14em;
-  text-transform:uppercase; margin-bottom:8px; }
+.mu { background:var(--cell); border:1px solid var(--line); border-radius:var(--r);
+  padding:16px; margin-bottom:14px; }
+.mu-status { display:flex; justify-content:space-between; font-size:.72rem;
+  font-weight:600; margin-bottom:10px; }
 .mu-status .act { color:var(--amber); } .mu-status .lk { color:var(--green); }
-.mu-team { font-family:var(--cond); font-weight:900; font-size:2rem; line-height:1;
-  text-transform:uppercase; letter-spacing:.02em; }
-.mu-team .opp { color:var(--dim); font-size:1.3rem; }
-.mu-team .tag { font-size:.65rem; letter-spacing:.2em; color:var(--dim); font-family:var(--mono); }
-.mu-line { font-size:.72rem; color:var(--dim); margin:8px 0 10px; }
-.probrow { display:flex; align-items:center; gap:10px; }
-.pbar { flex:1; height:10px; background:#1a1d23; border:1px solid var(--line); }
-.pfill { height:100%; background:repeating-linear-gradient(90deg, var(--amber) 0 6px, #d99417 6px 8px); }
-.pnum { font-family:var(--mono); font-weight:700; font-size:1.15rem; color:var(--amber); }
-.warnline { margin-top:8px; color:var(--amber); font-size:.68rem; }
-.actrow { display:flex; gap:10px; margin-top:12px; align-items:center; }
-button.go { font-family:var(--cond); font-weight:900; font-size:1rem; letter-spacing:.14em;
-  text-transform:uppercase; background:var(--amber); color:var(--bg); border:none;
-  padding:10px 20px; cursor:pointer; }
+.mu-team { font-weight:800; font-size:1.7rem; line-height:1.15; letter-spacing:-.02em; }
+.mu-team .opp { color:var(--dim); font-size:1.15rem; font-weight:600; }
+.mu-team .tag { font-size:.64rem; font-weight:700; letter-spacing:.08em; color:var(--dim); }
+.mu-line { font-size:.78rem; color:var(--dim); margin:8px 0 12px; }
+.probrow { display:flex; align-items:center; gap:12px; }
+.pbar { flex:1; height:9px; background:rgba(255,255,255,.06); border-radius:999px; overflow:hidden; }
+.pfill { height:100%; border-radius:999px;
+  background:linear-gradient(90deg,var(--amber-deep),var(--amber)); }
+.pnum { font-weight:800; font-size:1.1rem; color:var(--amber); }
+.warnline { margin-top:10px; color:var(--amber); font-size:.74rem; font-weight:500; }
+.actrow { display:flex; gap:12px; margin-top:14px; align-items:center; }
+button.go { font:inherit; font-weight:700; font-size:.9rem;
+  background:linear-gradient(135deg,var(--amber),var(--amber-deep)); color:#141310;
+  border:none; padding:11px 22px; border-radius:999px; cursor:pointer;
+  transition:opacity .15s, transform .1s; }
+button.go:hover:not(:disabled) { transform:translateY(-1px); }
 button.go:disabled { opacity:.35; cursor:default; }
-button.sub { font-family:var(--mono); font-size:.72rem; background:none; color:var(--dim);
-  border:1px solid var(--line2); padding:9px 14px; cursor:pointer; }
-label.ck { font-size:.68rem; color:var(--dim); display:flex; gap:6px; align-items:center; }
-input[type=checkbox] { accent-color:var(--amber); }
+button.sub { font:inherit; font-size:.8rem; font-weight:600; background:none;
+  color:var(--dim); border:1px solid var(--line2); padding:10px 16px;
+  border-radius:999px; cursor:pointer; }
+button.sub:hover { color:var(--text); }
+label.ck { font-size:.74rem; color:var(--dim); display:flex; gap:7px; align-items:center; }
+input[type=checkbox] { accent-color:var(--amber); width:15px; height:15px; }
 
-/* season rail */
-.rail { display:flex; gap:0; overflow-x:auto; border:1px solid var(--line); margin-bottom:12px; }
-.cellw { flex:0 0 auto; min-width:70px; border-right:1px solid var(--line); background:var(--cell);
-  text-align:center; padding:7px 6px 6px; cursor:pointer; }
-.cellw:hover { background:#171a20; }
-.cw-wk { font-size:.56rem; color:var(--dim); letter-spacing:.1em; }
-.cw-tm { font-family:var(--cond); font-weight:800; font-size:1.05rem; }
-.cw-p { font-size:.6rem; color:var(--dim); }
-.cw-b { font-size:.5rem; font-weight:700; letter-spacing:.06em; }
-.cellw.now { background:rgba(255,176,32,.12); box-shadow:inset 0 -3px 0 var(--amber); }
-.cellw.locked { box-shadow:inset 0 -3px 0 var(--green); }
-.cellw.hol { box-shadow:inset 0 -3px 0 var(--violet); }
+/* season rail — smooth floating tiles */
+.rail { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px; margin-bottom:6px; }
+.cellw { flex:0 0 auto; min-width:74px; border-radius:var(--r-sm); background:var(--cell);
+  border:1px solid var(--line); text-align:center; padding:9px 8px 8px; cursor:pointer;
+  transition:transform .12s, border-color .15s; }
+.cellw:hover { transform:translateY(-2px); border-color:var(--line2); }
+.cw-wk { font-size:.6rem; font-weight:600; color:var(--dim); letter-spacing:.04em; }
+.cw-tm { font-weight:800; font-size:1rem; margin-top:1px; }
+.cw-p { font-size:.64rem; color:var(--dim); }
+.cw-b { font-size:.56rem; font-weight:700; letter-spacing:.03em; margin-top:2px; }
+.cellw.now { border-color:var(--amber); background:rgba(224,177,92,.1);
+  box-shadow:0 0 0 1px var(--amber); }
+.cellw.locked { border-color:var(--green); background:rgba(74,222,128,.07); }
+.cellw.hol { border-color:var(--violet); background:rgba(167,139,250,.08); }
 .cellw.gap { opacity:.45; }
 
-/* weekly strategy editor */
-.stratstrip { display:flex; gap:0; overflow-x:auto; border:1px solid var(--line); margin-bottom:12px; }
-.scell { flex:0 0 auto; border-right:1px solid var(--line); background:var(--cell);
-  padding:6px 8px; text-align:center; }
-.scell .wk { font-size:.56rem; color:var(--dim); letter-spacing:.1em; margin-bottom:3px; }
-.scell select { font-size:.6rem; padding:3px 4px; }
+/* weekly strategy editor — soft pills */
+.stratstrip { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px; margin-bottom:6px; }
+.scell { flex:0 0 auto; background:var(--cell); border:1px solid var(--line);
+  border-radius:var(--r-sm); padding:8px 10px; text-align:center; }
+.scell .wk { font-size:.6rem; font-weight:600; color:var(--dim); margin-bottom:5px; }
+.scell select { font-size:.68rem; padding:4px 6px; border-radius:8px; }
 select { background:var(--panel2); color:var(--text); border:1px solid var(--line2);
-  font-family:var(--mono); padding:8px 10px; font-size:.75rem; }
+  font:inherit; font-size:.8rem; padding:8px 12px; border-radius:var(--r-sm); }
 option { background:var(--panel2); }
 
 /* holiday panels */
-.holgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.holpanel { background:var(--cell); border:1px solid var(--line); border-top:3px solid var(--violet); padding:10px; }
-.holpanel h5 { font-family:var(--cond); font-weight:900; letter-spacing:.12em; font-size:.9rem;
-  display:flex; justify-content:space-between; }
-.holpanel h5 .n { color:var(--violet); font-family:var(--mono); font-size:.7rem; }
-.chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
-.tchip { font-size:.62rem; font-family:var(--mono); padding:3px 7px; border:1px solid var(--line2); }
+.holgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.holpanel { background:var(--cell); border:1px solid var(--line); border-radius:var(--r); padding:14px; }
+.holpanel h5 { font-weight:700; font-size:.85rem; display:flex; justify-content:space-between;
+  align-items:center; }
+.holpanel h5 .n { color:var(--violet); font-size:.7rem; font-weight:600; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.tchip { font-size:.7rem; font-weight:600; padding:5px 10px; border-radius:999px;
+  border:1px solid var(--line2); cursor:pointer; transition:border-color .15s; }
+.tchip:hover { border-color:var(--text); }
 .tchip.avail { color:var(--text); }
-.tchip.burned { color:var(--dim); text-decoration:line-through; opacity:.55; }
-.tchip.planned { border-color:var(--violet); color:var(--violet); font-weight:700; }
-.tchip.lockedt { background:var(--green); color:var(--bg); font-weight:700; border-color:var(--green); }
+.tchip.burned { color:var(--dim); text-decoration:line-through; opacity:.5; cursor:default; }
+.tchip.planned { border-color:var(--violet); color:var(--violet); }
+.tchip.lockedt { background:var(--green); color:#12251a; border-color:var(--green); cursor:default; }
 @media (max-width:520px) { .holgrid { grid-template-columns:1fr; } }
 
-/* tables (odds-board style) */
-table { width:100%; border-collapse:collapse; margin:10px 0; border:1px solid var(--line); }
-th { font-family:var(--cond); font-weight:800; letter-spacing:.12em; text-transform:uppercase;
-  font-size:.68rem; color:var(--dim); background:var(--panel2); text-align:left;
-  padding:8px; border-bottom:1px solid var(--line2); }
-td { padding:8px; border-bottom:1px solid var(--line); font-size:.75rem; background:var(--cell); }
-td.num, th.num { text-align:right; font-family:var(--mono); }
+/* tables — soft rows */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:12px 0;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+th { font-weight:600; font-size:.7rem; letter-spacing:.04em; color:var(--dim);
+  text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); background:var(--panel2); }
+td { padding:10px 12px; border-bottom:1px solid var(--line); font-size:.8rem; }
+tr:last-child td { border-bottom:none; }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
 tr.rec td { color:var(--amber); font-weight:600; }
-tr.clickable { cursor:pointer; } tr.clickable:hover td { background:#171a20; }
+tr.clickable { cursor:pointer; } tr.clickable:hover td { background:rgba(255,255,255,.03); }
 
 /* metrics / banners / misc */
-.metricrow { display:flex; gap:12px; margin:12px 0; flex-wrap:wrap; }
-.metric { background:var(--cell); border:1px solid var(--line); padding:10px 16px; min-width:150px; }
-.metric .lbl { font-size:.58rem; color:var(--dim); letter-spacing:.14em; text-transform:uppercase; }
-.metric .val { font-family:var(--cond); font-weight:900; font-size:1.7rem; }
-.up { color:var(--green); font-size:.72rem; font-family:var(--mono); }
-.dn { color:var(--red); font-size:.72rem; font-family:var(--mono); }
-.banner { border:1px solid; padding:10px 14px; font-size:.72rem; margin:10px 0; }
-.banner.err { border-color:var(--red); color:#fca5a5; background:rgba(239,68,68,.06); }
-.banner.info { border-color:var(--violet); color:#c4b5fd; background:rgba(167,139,250,.06); }
-.banner.ok { border-color:var(--green); color:#86efac; background:rgba(34,197,94,.06); }
-.dchip { display:inline-block; font-size:.66rem; font-family:var(--mono); padding:4px 10px;
-  margin:0 6px 6px 0; border:1px solid; }
-.dchip.ok { color:var(--green); border-color:var(--green); }
-.dchip.bad { color:var(--red); border-color:var(--red); background:rgba(239,68,68,.08); }
-.dials { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin:10px 0; }
-.dial { background:var(--panel); border:1px solid var(--line); padding:12px; }
-.dial label { font-size:.62rem; color:var(--dim); letter-spacing:.1em; text-transform:uppercase;
-  display:block; margin-bottom:8px; }
+.metricrow { display:flex; gap:12px; margin:14px 0; flex-wrap:wrap; }
+.metric { background:var(--cell); border:1px solid var(--line); border-radius:var(--r);
+  padding:12px 18px; min-width:150px; }
+.metric .lbl { font-size:.64rem; font-weight:600; color:var(--dim); letter-spacing:.04em; }
+.metric .val { font-weight:800; font-size:1.5rem; margin-top:2px; }
+.up { color:var(--green); font-size:.76rem; font-weight:600; }
+.dn { color:var(--red); font-size:.76rem; font-weight:600; }
+.banner { border:1px solid; border-radius:var(--r-sm); padding:11px 14px;
+  font-size:.78rem; margin:10px 0; line-height:1.5; }
+.banner.err { border-color:rgba(248,113,113,.4); color:#fca5a5; background:rgba(248,113,113,.06); }
+.banner.info { border-color:rgba(167,139,250,.4); color:#c4b5fd; background:rgba(167,139,250,.06); }
+.banner.ok { border-color:rgba(74,222,128,.4); color:#86efac; background:rgba(74,222,128,.06); }
+.dchip { display:inline-block; font-size:.72rem; font-weight:600; padding:5px 12px;
+  margin:0 6px 6px 0; border:1px solid; border-radius:999px; }
+.dchip.ok { color:var(--green); border-color:rgba(74,222,128,.4); }
+.dchip.bad { color:var(--red); border-color:rgba(248,113,113,.5); background:rgba(248,113,113,.07); }
+.dials { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:12px 0; }
+.dial { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; }
+.dial label { font-size:.7rem; font-weight:600; color:var(--dim); display:block; margin-bottom:10px; }
 .dial input[type=range] { width:100%; accent-color:var(--amber); }
 .dial .dv { color:var(--amber); font-weight:700; }
 input[type=number], input[type=text] { background:var(--panel2); color:var(--text);
-  border:1px solid var(--line2); font-family:var(--mono); padding:8px 10px; font-size:.75rem; }
-.toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  border:1px solid var(--line2); font:inherit; font-size:.8rem; padding:9px 12px;
+  border-radius:var(--r-sm); }
+.toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
   background:var(--panel2); border:1px solid var(--amber); color:var(--text);
-  padding:10px 22px; font-size:.75rem; opacity:0; transition:opacity .25s;
-  pointer-events:none; z-index:99; font-family:var(--mono); }
+  padding:11px 24px; border-radius:999px; font-size:.8rem; font-weight:600;
+  opacity:0; transition:opacity .25s; pointer-events:none; z-index:99; box-shadow:var(--shadow); }
 .toast.show { opacity:1; }
-@media (max-width:640px) { .weekbox { font-size:1.6rem; } .mu-team { font-size:1.5rem; } }
+@media (max-width:640px) { .weekbox { font-size:1.1rem; } .mu-team { font-size:1.35rem; } }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">Circa Survivor<small>2026 · CONTEST BOARD</small></div>
+  <div class="brand">Circa Survivor<small>2026 · Contest board</small></div>
   <div class="weekbox" id="hd-week">…</div>
   <div class="leds">
     <span class="led" id="led-alive"><i></i><span>–</span></span>
@@ -202,15 +215,15 @@ input[type=number], input[type=text] { background:var(--panel2); color:var(--tex
 const $ = (s, el=document) => el.querySelector(s);
 const BUCKETS = ["chalk","contrarian","conservation"];
 const BC = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)"};
-const BSHORT = {chalk:"CHALK", contrarian:"CONTRA", conservation:"CONSRV"};
+const BSHORT = {chalk:"Chalk", contrarian:"Contra", conservation:"Conserve"};
 const GUIDE = [
-  ["CHALK","var(--green)",
+  ["Chalk","var(--green)",
    "Take the safest favorite, full stop. This entry's job is pure survival — it rides the highest win probability available every week.",
    "How it's built: zero popularity penalty · light team-conservation (0.4×). Objective ≈ maximize log(win prob)."],
-  ["CONTRARIAN","var(--red)",
+  ["Contrarian","var(--red)",
    "Fade the crowd. Avoids the most-picked favorite so that when a chalk team loses, this entry gains ground on the whole field instead of dying with it.",
    "How it's built: heavy popularity penalty (1.5×) against each week's top-prob team · normal conservation (1.0×)."],
-  ["CONSERVE","var(--teal)",
+  ["Conserve","var(--teal)",
    "Save the studs. Burns low-value teams (bad season win totals) in their rare good spots and protects elite + holiday-pool teams for when they're needed.",
    "How it's built: 2.2× future-value penalty — FV = (win total − 8.5)/3 + 0.3 per holiday pool · mild popularity fade (0.3×)."],
 ];
@@ -286,7 +299,7 @@ function matchup(e){
   const ent = D.entries[e], leg = D.current_leg;
   const locked = ent.picks[leg];
   const pick = locked || (D.plan[e]||{})[leg];
-  if (!ent.alive) return `<div class="mu"><div class="dim">ELIMINATED</div></div>`;
+  if (!ent.alive) return `<div class="mu"><div class="dim">Eliminated</div></div>`;
   if (!pick) return `<div class="mu"><div class="dim">no pick clears the floor — lower the weekly floor in Tools</div></div>`;
   const p = (D.probs[leg]||{})[pick];
   const g = gameFor(D.game_meta, pick);
@@ -306,12 +319,12 @@ function matchup(e){
   }
   const ou = D.win_totals[pick]?`${D.win_totals[pick].toFixed(1)} O/U`:"";
   const act = locked
-    ? `<div class="actrow"><button class="sub" onclick="doUnlock('${e}','${leg}')">UNLOCK</button></div>`
+    ? `<div class="actrow"><button class="sub" onclick="doUnlock('${e}','${leg}')">Unlock</button></div>`
     : `<div class="actrow"><label class="ck"><input type="checkbox"
-         onchange="$('#lk-${e}').disabled=!this.checked"> CONFIRM</label>
+         onchange="$('#lk-${e}').disabled=!this.checked"> Confirm</label>
        <button class="go" id="lk-${e}" disabled onclick="doLock('${e}','${leg}','${pick}')">Lock ${pick}</button></div>`;
   return `<div class="mu">
-    <div class="mu-status"><span class="${locked?'lk':'act'}">${locked?'● LOCKED':'▶ ACTION — PICK NOW'}</span>
+    <div class="mu-status"><span class="${locked?'lk':'act'}">${locked?'● Locked':'▶ Pick now'}</span>
       <span class="dim">${ou}</span></div>
     <div class="mu-team">${pick}${rec(pick)} ${opp}</div>
     <div class="mu-line">${line}</div>
@@ -328,7 +341,7 @@ function rail(e){
     const icon = lid==="TXWEEK"?"🎄":lid==="XMASWEEK"?"🎁":"";
     const b = effB(ent, lid);
     let cls, tm, sub;
-    if (lockedT){ cls="locked"; tm=`✓${lockedT}`; sub="LOCK"; }
+    if (lockedT){ cls="locked"; tm=`✓${lockedT}`; sub="locked"; }
     else if (lid===D.current_leg && planned){ cls="now"; tm=planned; sub=pct((D.probs[lid]||{})[planned]); }
     else if (holiday && planned){ cls="hol"; tm=planned; sub=pct((D.probs[lid]||{})[planned]); }
     else if (planned){ cls=""; tm=planned; sub=pct((D.probs[lid]||{})[planned]); }
@@ -348,7 +361,7 @@ function stratStrip(e){
 
 function holidayPanels(e){
   const ent = D.entries[e];
-  return `<div class="holgrid">` + [["TXWEEK","🎄 THANKSGIVING"],["XMASWEEK","🎁 CHRISTMAS"]].map(([hw,label]) => {
+  return `<div class="holgrid">` + [["TXWEEK","🎄 Thanksgiving"],["XMASWEEK","🎁 Christmas"]].map(([hw,label]) => {
     const pool = D.pools[hw];
     const lockedT = ent.picks[hw];
     const planned = (D.plan[e]||{})[hw];
@@ -361,7 +374,7 @@ function holidayPanels(e){
       if (planned===t) return `<span class="tchip planned" onclick="openPlanner('${e}','${hw}')">${t}${ptxt} ◈</span>`;
       return `<span class="tchip avail" onclick="openPlanner('${e}','${hw}')">${t}${ptxt}</span>`;
     }).join("");
-    const n = lockedT ? `LOCKED ${lockedT}` : `${avail.length}/${pool.length} AVAILABLE`;
+    const n = lockedT ? `locked ${lockedT}` : `${avail.length}/${pool.length} available`;
     return `<div class="holpanel"><h5>${label} <span class="n">${n}</span></h5>
       <div class="chips">${chips}</div></div>`;
   }).join("") + `</div>
@@ -380,7 +393,7 @@ function renderView(){
         const ent = D.entries[e];
         return `<div class="ticket" style="border-left-color:${BC[ent.bucket]||'var(--amber)'}">
           <div class="t-head"><span class="st" style="background:${ent.alive?'var(--green)':'var(--red)'}"></span>
-            <span class="nm">ENTRY ${e}</span>${bucketSelect(e)}</div>
+            <span class="nm">Entry ${e}</span>${bucketSelect(e)}</div>
           <div class="t-body">
             ${matchup(e)}
             <h2 style="margin-top:4px">Season</h2>
@@ -417,7 +430,7 @@ function renderView(){
       <div style="display:flex;gap:10px;align-items:center">
         <select id="mkt-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
         <button class="go" onclick="loadMarket()">Load</button>
-        <button class="sub" onclick="ingestLines()">INGEST LINES → SOLVER</button></div>
+        <button class="sub" onclick="ingestLines()">Ingest lines → solver</button></div>
       <div id="mkt"></div>`;
     loadMarket();
   }
@@ -433,20 +446,20 @@ function renderView(){
         ${dial("future_value_weight","Team conservation",0,1.2,0.05)}
         <div class="dial"><label>Endgame (straddles)</label>
           <label class="ck"><input type="checkbox" ${dials.endgame?"checked":""}
-            onchange="dials.endgame=this.checked;saveDials()"> ENABLE</label></div>
+            onchange="dials.endgame=this.checked;saveDials()"> Enable</label></div>
       </div>
       <h2>Week control</h2>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="adv-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
-        <button class="sub" onclick="advanceWeek()">SET CURRENT WEEK</button></div>
+        <button class="sub" onclick="advanceWeek()">Set current week</button></div>
       <h2>Elo nudge</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <select id="nudge-team">${Object.keys(D.win_totals).sort().map(t=>`<option>${t}</option>`).join("")}</select>
         <input type="number" id="nudge-delta" value="0" step="5" style="width:90px">
         <input type="text" id="nudge-note" placeholder="note (logged)" style="flex:1;min-width:150px">
-        <button class="sub" onclick="doNudge()">APPLY</button></div>
+        <button class="sub" onclick="doNudge()">Apply</button></div>
       <h2>Injuries</h2>
-      <button class="sub" onclick="loadInjuries()">FETCH HIGH-SEVERITY REPORT</button><div id="inj"></div>
+      <button class="sub" onclick="loadInjuries()">Fetch high-severity report</button><div id="inj"></div>
       <h2>Integrity check</h2>
       <button class="go" onclick="runCheck()">Run check</button><div id="chk"></div>`;
   }
@@ -455,11 +468,11 @@ function renderView(){
 function weekLabel(e, lid){
   const ent = D.entries[e];
   const icon = lid==="TXWEEK"?"🎄 ":lid==="XMASWEEK"?"🎁 ":"";
-  if (ent.picks[lid]) return `${icon}${lid} — LOCKED ${ent.picks[lid]}`;
+  if (ent.picks[lid]) return `${icon}${lid} — 🔒 ${ent.picks[lid]}`;
   const t = (D.plan[e]||{})[lid];
   const b = effB(ent,lid)||"—";
   if (t){ const p=(D.probs[lid]||{})[t];
-    return `${icon}${lid} — ${t} (${p?Math.round(p*100)+"%":"?"}) · ${b}${lid===D.current_leg?" ← NOW":""}`; }
+    return `${icon}${lid} — ${t} (${p?Math.round(p*100)+"%":"?"}) · ${b}${lid===D.current_leg?" ← now":""}`; }
   return `${icon}${lid} — none above floor · ${b}`;
 }
 function decChips(){
@@ -491,9 +504,9 @@ async function loadPlanner(e, leg){
   try {
     const P = await api(`/api/plan?entry=${e}&leg=${leg}&${qs()}`);
     if (P.locked){
-      el.innerHTML = `<div class="banner info">${leg} is LOCKED on <b>${P.locked_team}</b>.</div>
+      el.innerHTML = `<div class="banner info">${leg} is locked on <b>${P.locked_team}</b>.</div>
         <label class="ck"><input type="checkbox" id="unlock-ok"> confirm unlock</label>
-        <div class="actrow"><button class="sub" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">UNLOCK ${leg}</button></div>`;
+        <div class="actrow"><button class="sub" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">Unlock ${leg}</button></div>`;
       return;
     }
     if (!P.alternatives.length){
@@ -519,7 +532,7 @@ async function runWhatIf(e, leg, team){
   try {
     const W = await api("/api/whatif", {entry:e, leg, team, ...dials});
     if (W.status!=="Optimal"){
-      el.innerHTML = `<div class="banner err">SOLVER: ${W.status}. This pick likely breaks a hard constraint
+      el.innerHTML = `<div class="banner err">Solver: ${W.status}. This pick likely breaks a hard constraint
         (e.g. exhausts a holiday pool). Strong signal NOT to take it.</div>`; return; }
     const d = (W.p_choice!=null&&W.p_model!=null)?W.p_choice-W.p_model:null;
     el.innerHTML = `
@@ -527,14 +540,14 @@ async function runWhatIf(e, leg, team){
         <div class="metric"><div class="lbl">MODEL · ${W.model_pick||"—"}</div><div class="val">${pct(W.p_model)}</div></div>
         <div class="metric"><div class="lbl">YOURS · ${team}</div><div class="val">${pct(W.p_choice)}
           ${d!=null?`<span class="${d>=0?'up':'dn'}">${d>=0?"+":""}${(d*100).toFixed(1)}%</span>`:""}</div></div></div>
-      ${W.ripple.length?`<div class="banner info">PORTFOLIO RIPPLE: `+
+      ${W.ripple.length?`<div class="banner info">Portfolio ripple: `+
         W.ripple.map(r=>`E${r.entry} ${r.leg}: ${r.before}→${r.after}`).join(" · ")+`</div>`:""}
       <table><thead><tr><th>Week</th><th>Current plan</th><th>With ${team}</th><th></th></tr></thead><tbody>` +
       W.diff.map(r=>`<tr><td>${r.leg}</td>
         <td>${r.before?`${r.before} (${Math.round((r.pb||0)*100)}%)`:"—"}</td>
         <td>${r.after?`${r.after} (${Math.round((r.pa||0)*100)}%)`:"—"}</td>
         <td>${r.changed?"🔄":""}</td></tr>`).join("") + `</tbody></table>
-      <label class="ck"><input type="checkbox" onchange="$('#pin-btn').disabled=!this.checked"> CONFIRM</label>
+      <label class="ck"><input type="checkbox" onchange="$('#pin-btn').disabled=!this.checked"> Confirm</label>
       <div class="actrow"><button class="go" id="pin-btn" disabled onclick="doLock('${e}','${leg}','${team}')">
         ${leg===D.current_leg?`Lock ${team}`:`Pin ${team} · ${leg}`}</button></div>`;
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
@@ -549,11 +562,11 @@ async function setBucket(e, bucket, leg){
   } catch(err){ toast(`⚠ ${err.message}`); }
 }
 async function doLock(e, leg, team){
-  try { await api("/api/lock",{entry:e,leg,team}); toast(`LOCKED ${team} · ${leg}`); await refresh(); }
+  try { await api("/api/lock",{entry:e,leg,team}); toast(`Locked ${team} · ${leg}`); await refresh(); }
   catch(err){ toast(`⚠ ${err.message}`); }
 }
 async function doUnlock(e, leg){
-  try { const r=await api("/api/unlock",{entry:e,leg}); toast(`UNLOCKED ${r.removed} · ${leg}`); await refresh(); }
+  try { const r=await api("/api/unlock",{entry:e,leg}); toast(`Unlocked ${r.removed} · ${leg}`); await refresh(); }
   catch(err){ toast(`⚠ ${err.message}`); }
 }
 async function advanceWeek(){ await api("/api/advance",{leg:$("#adv-leg").value});

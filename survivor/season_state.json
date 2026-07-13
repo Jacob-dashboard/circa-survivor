@@ -7,13 +7,13 @@
     "W1": {
       "lines": {
         "SEA|NE": {
-          "home": -198,
-          "away": 164,
+          "home": -192,
+          "away": 160,
           "market_weight": 0.85
         },
         "LAR|SF": {
-          "home": -175,
-          "away": 145,
+          "home": -170,
+          "away": 142,
           "market_weight": 0.85
         },
         "CIN|TB": {
@@ -82,8 +82,8 @@
           "market_weight": 0.85
         },
         "KC|DEN": {
-          "home": -148,
-          "away": 124,
+          "home": -142,
+          "away": 120,
           "market_weight": 0.85
         }
       }
@@ -96,9 +96,9 @@
       "picks": {},
       "bucket": "contrarian",
       "leg_buckets": {
-        "W1": "contrarian",
-        "W2": "contrarian",
-        "W3": "contrarian",
+        "W1": "conservation",
+        "W2": "chalk",
+        "W3": "conservation",
         "W12": "chalk"
       }
     },
