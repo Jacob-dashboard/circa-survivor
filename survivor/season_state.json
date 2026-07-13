@@ -1,6 +1,8 @@
 {
   "current_leg": "W1",
-  "elo_adjustments": {},
+  "elo_adjustments": {
+    "KC": 0.0
+  },
   "leg_overrides": {
     "W1": {
       "lines": {

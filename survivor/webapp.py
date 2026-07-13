@@ -29,6 +29,8 @@ import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from typing import Optional
+
 from pydantic import BaseModel
 
 from . import data
@@ -132,7 +134,9 @@ def _records_json():
 
 @app.get("/")
 def index():
-    return FileResponse(_WEBUI, media_type="text/html")
+    # no-store: the SPA is one file that changes often; never serve stale UI.
+    return FileResponse(_WEBUI, media_type="text/html",
+                        headers={"Cache-Control": "no-store"})
 
 
 # ---------------------------------------------------------------------------
@@ -140,9 +144,9 @@ def index():
 # ---------------------------------------------------------------------------
 
 @app.get("/api/board")
-def board(horizon: int = None, min_prob: float = None,
-          holiday_min_prob: float = None, future_value_weight: float = None,
-          endgame: bool = None):
+def board(horizon: Optional[int] = None, min_prob: Optional[float] = None,
+          holiday_min_prob: Optional[float] = None, future_value_weight: Optional[float] = None,
+          endgame: Optional[bool] = None):
     d = _dials(horizon, min_prob, holiday_min_prob, future_value_weight, endgame)
     state = state_mod.load_state()
     try:
@@ -184,9 +188,9 @@ def board(horizon: int = None, min_prob: float = None,
 # ---------------------------------------------------------------------------
 
 @app.get("/api/plan")
-def plan(entry: str, leg: str, horizon: int = None, min_prob: float = None,
-         holiday_min_prob: float = None, future_value_weight: float = None,
-         endgame: bool = None):
+def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional[float] = None,
+         holiday_min_prob: Optional[float] = None, future_value_weight: Optional[float] = None,
+         endgame: Optional[bool] = None):
     d = _dials(horizon, min_prob, holiday_min_prob, future_value_weight, endgame)
     state = state_mod.load_state()
     if entry not in state["entries"]:
@@ -210,11 +214,11 @@ class WhatIf(BaseModel):
     entry: str
     leg: str
     team: str
-    horizon: int = None
-    min_prob: float = None
-    holiday_min_prob: float = None
-    future_value_weight: float = None
-    endgame: bool = None
+    horizon: Optional[int] = None
+    min_prob: Optional[float] = None
+    holiday_min_prob: Optional[float] = None
+    future_value_weight: Optional[float] = None
+    endgame: Optional[bool] = None
 
 
 @app.post("/api/whatif")
@@ -325,8 +329,8 @@ def unlock(body: UnlockReq):
 
 class BucketReq(BaseModel):
     entry: str
-    bucket: str = None    # None/"" clears (per-week only)
-    leg: str = None       # omit -> set entry default
+    bucket: Optional[str] = None    # None/"" clears (per-week only)
+    leg: Optional[str] = None       # omit -> set entry default
 
 
 @app.post("/api/bucket")
@@ -362,7 +366,7 @@ def advance(body: AdvanceReq):
 class NudgeReq(BaseModel):
     team: str
     delta: float
-    note: str = None
+    note: Optional[str] = None
 
 
 @app.post("/api/nudge")

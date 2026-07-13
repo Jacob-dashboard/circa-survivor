@@ -5,131 +5,193 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Circa Survivor 2026</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+/* ============================================================
+   v2 — "big board" design language. Sportsbook wall, not a
+   dashboard: condensed caps for teams, mono LED numerals,
+   ticket cards with bucket-colored spines.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
 :root {
-  --gold:#e8b339; --violet:#8b5cf6; --green:#2ecc71; --red:#ef4444;
-  --bg:#0b0f19; --card:#121828; --card2:#0f1522; --line:rgba(232,179,57,.16);
-  --muted:#8b93a7; --text:#e6e9f0; --teal:#14b8a6;
+  --bg:#0a0b0d; --panel:#101216; --panel2:#15181e; --cell:#0d0f13;
+  --line:#23262d; --line2:#2e323b;
+  --amber:#ffb020; --amber-dim:#8a6420;
+  --green:#22c55e; --red:#ef4444; --teal:#2dd4bf; --violet:#a78bfa;
+  --text:#e9eaec; --dim:#7c828d;
+  --cond:'Barlow Condensed',sans-serif; --mono:'JetBrains Mono',monospace;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; padding-bottom:60px; }
-a { color:var(--gold); }
+body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; padding-bottom:70px; }
+body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.012) 2px 4px); }
+main, header, nav { position:relative; z-index:1; }
 
-/* ---- header / nav ---- */
-header { padding:16px 18px 0; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
-.brand { font-size:.72rem; font-weight:900; letter-spacing:.22em; color:var(--gold); }
-.week { font-size:2rem; font-weight:900; letter-spacing:-.03em; }
-.pills { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
-.pill { font-size:.68rem; font-weight:700; padding:4px 10px; border-radius:999px;
-        border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
-nav { display:flex; gap:4px; padding:12px 14px; overflow-x:auto; position:sticky; top:0;
-      background:linear-gradient(180deg, var(--bg) 85%, transparent); z-index:5; }
-nav button { flex:0 0 auto; background:none; border:1px solid transparent; color:var(--muted);
-      font:inherit; font-weight:700; font-size:.85rem; padding:8px 14px; border-radius:10px; cursor:pointer; }
-nav button.on { color:var(--gold); border-color:var(--gold); background:rgba(232,179,57,.08); }
-main { padding:6px 14px; max-width:1200px; margin:0 auto; }
+/* ---- masthead ---- */
+header { padding:18px 18px 10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  border-bottom:2px solid var(--line); }
+.brand { font-family:var(--cond); font-weight:900; font-size:1.5rem; letter-spacing:.12em;
+  color:var(--amber); text-transform:uppercase; }
+.brand small { display:block; font-size:.6rem; letter-spacing:.35em; color:var(--dim); }
+.weekbox { font-family:var(--cond); font-weight:900; font-size:2.2rem; line-height:1;
+  border:2px solid var(--amber); color:var(--amber); padding:2px 14px; }
+.leds { margin-left:auto; display:flex; gap:14px; flex-wrap:wrap; }
+.led { display:flex; align-items:center; gap:6px; font-size:.62rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--dim); }
+.led i { width:8px; height:8px; border-radius:50%; background:var(--green);
+  box-shadow:0 0 6px var(--green); }
+.led.warn i { background:var(--amber); box-shadow:0 0 6px var(--amber); }
+.led.bad i { background:var(--red); box-shadow:0 0 6px var(--red); }
+
+/* ---- nav ---- */
+nav { display:flex; gap:0; overflow-x:auto; border-bottom:2px solid var(--line);
+  position:sticky; top:0; background:var(--bg); z-index:6; }
+nav button { flex:0 0 auto; background:none; border:none; border-right:1px solid var(--line);
+  color:var(--dim); font-family:var(--cond); font-weight:800; font-size:1rem;
+  letter-spacing:.12em; text-transform:uppercase; padding:12px 20px; cursor:pointer; }
+nav button.on { color:var(--bg); background:var(--amber); }
+
+main { padding:16px 14px; max-width:1240px; margin:0 auto; }
 .view { display:none; } .view.on { display:block; }
-h2 { font-size:1.05rem; font-weight:800; letter-spacing:-.01em; margin:18px 0 10px;
-     border-bottom:1px solid var(--line); padding-bottom:6px; }
-.mut { color:var(--muted); font-size:.78rem; }
 
-/* ---- board grid ---- */
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px; }
-.entry { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
-.e-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-.e-dot { width:9px; height:9px; border-radius:50%; }
-.e-name { font-weight:900; letter-spacing:.08em; font-size:.85rem; }
-.chip { font-size:.62rem; font-weight:800; letter-spacing:.1em; padding:2px 8px;
-        border-radius:999px; border:1px solid; margin-left:auto; cursor:pointer; background:none; font-family:inherit; }
-.matchup { background:linear-gradient(180deg, rgba(232,179,57,.06), transparent);
-           border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
-.mu-top { display:flex; justify-content:space-between; margin-bottom:8px; }
-.st-lock { color:var(--green); border-color:#2ecc7166; }
-.st-act  { color:var(--gold); border-color:#e8b33966; }
-.ou { color:var(--muted); font-size:.7rem; font-weight:600; align-self:center; }
-.mu-team { font-size:1.5rem; font-weight:900; letter-spacing:-.02em; }
-.mu-team .vs { color:var(--muted); font-weight:600; font-size:1rem; }
-.mu-team .ha { font-size:.6rem; font-weight:800; color:var(--muted); letter-spacing:.15em; margin-left:6px; }
-.rec { color:var(--muted); font-size:.85rem; font-weight:600; }
-.mu-detail { color:var(--muted); font-size:.78rem; margin:6px 0 10px; }
-.probwrap { display:flex; align-items:center; gap:10px; }
-.probbar { flex:1; height:8px; border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden; }
-.probfill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--gold),#f5d47a); }
-.probnum { font-weight:900; font-size:1.05rem; color:var(--gold); }
-.warn { margin-top:8px; color:#f59e0b; font-size:.72rem; font-weight:600; }
-.actions { display:flex; gap:8px; margin-top:10px; }
-button.primary { background:var(--gold); color:#161207; border:none; border-radius:10px;
-                 font:inherit; font-weight:800; padding:9px 16px; cursor:pointer; }
-button.ghost { background:none; border:1px solid var(--line); color:var(--muted); border-radius:10px;
-               font:inherit; font-weight:700; padding:9px 14px; cursor:pointer; }
-button.primary:disabled { opacity:.4; cursor:default; }
-label.ck { font-size:.75rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+h2 { font-family:var(--cond); font-weight:900; font-size:1.15rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--text); margin:22px 0 10px; display:flex; align-items:center; gap:10px; }
+h2::after { content:""; flex:1; height:1px; background:var(--line2); }
+.dim { color:var(--dim); font-size:.72rem; }
 
-/* ---- rail ---- */
-.rail { display:flex; gap:6px; overflow-x:auto; padding:4px 2px 10px; }
-.tile { flex:0 0 auto; min-width:62px; text-align:center; border-radius:10px;
-        padding:6px 8px; border:1.5px solid #2a3247; cursor:pointer; }
-.tile-week { font-size:.58rem; color:var(--muted); font-weight:700; }
-.tile-team { font-weight:800; font-size:.95rem; }
-.tile-sub  { font-size:.62rem; color:var(--muted); }
-.tile-chip { font-size:.5rem; font-weight:800; letter-spacing:.08em; }
-.tile.now { border-color:var(--gold); background:rgba(232,179,57,.12); }
-.tile.locked { border-color:var(--green); background:rgba(46,204,113,.08); }
-.tile.hol { border-color:var(--violet); background:rgba(139,92,246,.10); }
-.tile.gap { border-style:dashed; opacity:.55; }
-.hwrap { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
-.hchip { font-size:.7rem; padding:4px 10px; border-radius:999px; border:1px solid #8b5cf655; color:#cfd4e0; }
+/* ---- strategy guide ---- */
+.guide { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; margin:10px 0 4px; }
+.gcard { background:var(--panel); border:1px solid var(--line); border-top:3px solid; padding:12px 14px; }
+.gcard h4 { font-family:var(--cond); font-weight:900; font-size:1.05rem; letter-spacing:.12em; }
+.gcard p { font-size:.72rem; color:var(--dim); margin-top:6px; line-height:1.5; }
+.gcard .how { margin-top:8px; font-size:.62rem; color:var(--text); background:var(--cell);
+  border:1px solid var(--line); padding:6px 8px; }
+details.guidewrap > summary { cursor:pointer; font-family:var(--cond); font-weight:800;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--amber); font-size:.9rem;
+  padding:10px 0 2px; list-style:none; }
+details.guidewrap > summary::before { content:"▸ "; }
+details.guidewrap[open] > summary::before { content:"▾ "; }
 
-/* ---- planner ---- */
-select, input[type=number], input[type=text] {
-  background:var(--card2); color:var(--text); border:1px solid var(--line);
-  border-radius:10px; padding:9px 12px; font:inherit; }
-table { width:100%; border-collapse:collapse; font-size:.82rem; margin:10px 0; }
-th { text-align:left; color:var(--muted); font-size:.68rem; letter-spacing:.08em;
-     text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--line); }
-td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); }
-tr.rec td { color:var(--gold); font-weight:700; }
-tr.clickable { cursor:pointer; } tr.clickable:hover td { background:rgba(232,179,57,.05); }
-.metricrow { display:flex; gap:14px; margin:12px 0; flex-wrap:wrap; }
-.metric { background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:10px 16px; }
-.metric .lbl { font-size:.65rem; color:var(--muted); font-weight:700; letter-spacing:.08em; }
-.metric .val { font-size:1.3rem; font-weight:900; }
-.metric .delta-up { color:var(--green); font-size:.75rem; } .metric .delta-dn { color:var(--red); font-size:.75rem; }
-.banner { border-radius:10px; padding:10px 14px; font-size:.8rem; margin:10px 0; }
-.banner.err { background:rgba(239,68,68,.1); border:1px solid #ef444466; color:#fca5a5; }
-.banner.info { background:rgba(139,92,246,.1); border:1px solid #8b5cf655; color:#c4b5fd; }
-.banner.ok { background:rgba(46,204,113,.08); border:1px solid #2ecc7155; color:#86efac; }
-.dchip { display:inline-block; font-size:.72rem; font-weight:600; padding:4px 10px;
-         border-radius:8px; margin:0 6px 6px 0; border:1px solid; }
-.dchip.ok { color:var(--green); border-color:#2ecc7144; }
-.dchip.bad { color:var(--red); border-color:#ef444466; background:rgba(239,68,68,.08); }
+/* ---- entry ticket ---- */
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:16px; }
+.ticket { background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--amber); }
+.t-head { display:flex; align-items:center; gap:10px; padding:10px 14px;
+  border-bottom:1px dashed var(--line2); }
+.t-head .nm { font-family:var(--cond); font-weight:900; font-size:1.2rem; letter-spacing:.14em; }
+.t-head .st { width:8px; height:8px; border-radius:50%; }
+.t-head select { margin-left:auto; }
+.t-body { padding:12px 14px; }
 
-/* ---- dials ---- */
-.dials { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin:10px 0; }
-.dial { background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:12px; }
-.dial label { font-size:.68rem; color:var(--muted); font-weight:700; letter-spacing:.06em; display:block; margin-bottom:6px; }
-.dial input[type=range] { width:100%; accent-color:var(--gold); }
-.dial .dv { font-weight:800; color:var(--gold); font-size:.8rem; }
+/* matchup */
+.mu { background:var(--cell); border:1px solid var(--line); padding:12px; margin-bottom:12px; }
+.mu-status { display:flex; justify-content:space-between; font-size:.62rem; letter-spacing:.14em;
+  text-transform:uppercase; margin-bottom:8px; }
+.mu-status .act { color:var(--amber); } .mu-status .lk { color:var(--green); }
+.mu-team { font-family:var(--cond); font-weight:900; font-size:2rem; line-height:1;
+  text-transform:uppercase; letter-spacing:.02em; }
+.mu-team .opp { color:var(--dim); font-size:1.3rem; }
+.mu-team .tag { font-size:.65rem; letter-spacing:.2em; color:var(--dim); font-family:var(--mono); }
+.mu-line { font-size:.72rem; color:var(--dim); margin:8px 0 10px; }
+.probrow { display:flex; align-items:center; gap:10px; }
+.pbar { flex:1; height:10px; background:#1a1d23; border:1px solid var(--line); }
+.pfill { height:100%; background:repeating-linear-gradient(90deg, var(--amber) 0 6px, #d99417 6px 8px); }
+.pnum { font-family:var(--mono); font-weight:700; font-size:1.15rem; color:var(--amber); }
+.warnline { margin-top:8px; color:var(--amber); font-size:.68rem; }
+.actrow { display:flex; gap:10px; margin-top:12px; align-items:center; }
+button.go { font-family:var(--cond); font-weight:900; font-size:1rem; letter-spacing:.14em;
+  text-transform:uppercase; background:var(--amber); color:var(--bg); border:none;
+  padding:10px 20px; cursor:pointer; }
+button.go:disabled { opacity:.35; cursor:default; }
+button.sub { font-family:var(--mono); font-size:.72rem; background:none; color:var(--dim);
+  border:1px solid var(--line2); padding:9px 14px; cursor:pointer; }
+label.ck { font-size:.68rem; color:var(--dim); display:flex; gap:6px; align-items:center; }
+input[type=checkbox] { accent-color:var(--amber); }
 
-.toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
-         background:#1c2436; border:1px solid var(--gold); color:var(--text);
-         padding:10px 22px; border-radius:12px; font-size:.85rem; font-weight:600;
-         opacity:0; transition:opacity .25s; pointer-events:none; z-index:99; }
+/* season rail */
+.rail { display:flex; gap:0; overflow-x:auto; border:1px solid var(--line); margin-bottom:12px; }
+.cellw { flex:0 0 auto; min-width:70px; border-right:1px solid var(--line); background:var(--cell);
+  text-align:center; padding:7px 6px 6px; cursor:pointer; }
+.cellw:hover { background:#171a20; }
+.cw-wk { font-size:.56rem; color:var(--dim); letter-spacing:.1em; }
+.cw-tm { font-family:var(--cond); font-weight:800; font-size:1.05rem; }
+.cw-p { font-size:.6rem; color:var(--dim); }
+.cw-b { font-size:.5rem; font-weight:700; letter-spacing:.06em; }
+.cellw.now { background:rgba(255,176,32,.12); box-shadow:inset 0 -3px 0 var(--amber); }
+.cellw.locked { box-shadow:inset 0 -3px 0 var(--green); }
+.cellw.hol { box-shadow:inset 0 -3px 0 var(--violet); }
+.cellw.gap { opacity:.45; }
+
+/* weekly strategy editor */
+.stratstrip { display:flex; gap:0; overflow-x:auto; border:1px solid var(--line); margin-bottom:12px; }
+.scell { flex:0 0 auto; border-right:1px solid var(--line); background:var(--cell);
+  padding:6px 8px; text-align:center; }
+.scell .wk { font-size:.56rem; color:var(--dim); letter-spacing:.1em; margin-bottom:3px; }
+.scell select { font-size:.6rem; padding:3px 4px; }
+select { background:var(--panel2); color:var(--text); border:1px solid var(--line2);
+  font-family:var(--mono); padding:8px 10px; font-size:.75rem; }
+option { background:var(--panel2); }
+
+/* holiday panels */
+.holgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.holpanel { background:var(--cell); border:1px solid var(--line); border-top:3px solid var(--violet); padding:10px; }
+.holpanel h5 { font-family:var(--cond); font-weight:900; letter-spacing:.12em; font-size:.9rem;
+  display:flex; justify-content:space-between; }
+.holpanel h5 .n { color:var(--violet); font-family:var(--mono); font-size:.7rem; }
+.chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+.tchip { font-size:.62rem; font-family:var(--mono); padding:3px 7px; border:1px solid var(--line2); }
+.tchip.avail { color:var(--text); }
+.tchip.burned { color:var(--dim); text-decoration:line-through; opacity:.55; }
+.tchip.planned { border-color:var(--violet); color:var(--violet); font-weight:700; }
+.tchip.lockedt { background:var(--green); color:var(--bg); font-weight:700; border-color:var(--green); }
+@media (max-width:520px) { .holgrid { grid-template-columns:1fr; } }
+
+/* tables (odds-board style) */
+table { width:100%; border-collapse:collapse; margin:10px 0; border:1px solid var(--line); }
+th { font-family:var(--cond); font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+  font-size:.68rem; color:var(--dim); background:var(--panel2); text-align:left;
+  padding:8px; border-bottom:1px solid var(--line2); }
+td { padding:8px; border-bottom:1px solid var(--line); font-size:.75rem; background:var(--cell); }
+td.num, th.num { text-align:right; font-family:var(--mono); }
+tr.rec td { color:var(--amber); font-weight:600; }
+tr.clickable { cursor:pointer; } tr.clickable:hover td { background:#171a20; }
+
+/* metrics / banners / misc */
+.metricrow { display:flex; gap:12px; margin:12px 0; flex-wrap:wrap; }
+.metric { background:var(--cell); border:1px solid var(--line); padding:10px 16px; min-width:150px; }
+.metric .lbl { font-size:.58rem; color:var(--dim); letter-spacing:.14em; text-transform:uppercase; }
+.metric .val { font-family:var(--cond); font-weight:900; font-size:1.7rem; }
+.up { color:var(--green); font-size:.72rem; font-family:var(--mono); }
+.dn { color:var(--red); font-size:.72rem; font-family:var(--mono); }
+.banner { border:1px solid; padding:10px 14px; font-size:.72rem; margin:10px 0; }
+.banner.err { border-color:var(--red); color:#fca5a5; background:rgba(239,68,68,.06); }
+.banner.info { border-color:var(--violet); color:#c4b5fd; background:rgba(167,139,250,.06); }
+.banner.ok { border-color:var(--green); color:#86efac; background:rgba(34,197,94,.06); }
+.dchip { display:inline-block; font-size:.66rem; font-family:var(--mono); padding:4px 10px;
+  margin:0 6px 6px 0; border:1px solid; }
+.dchip.ok { color:var(--green); border-color:var(--green); }
+.dchip.bad { color:var(--red); border-color:var(--red); background:rgba(239,68,68,.08); }
+.dials { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin:10px 0; }
+.dial { background:var(--panel); border:1px solid var(--line); padding:12px; }
+.dial label { font-size:.62rem; color:var(--dim); letter-spacing:.1em; text-transform:uppercase;
+  display:block; margin-bottom:8px; }
+.dial input[type=range] { width:100%; accent-color:var(--amber); }
+.dial .dv { color:var(--amber); font-weight:700; }
+input[type=number], input[type=text] { background:var(--panel2); color:var(--text);
+  border:1px solid var(--line2); font-family:var(--mono); padding:8px 10px; font-size:.75rem; }
+.toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  background:var(--panel2); border:1px solid var(--amber); color:var(--text);
+  padding:10px 22px; font-size:.75rem; opacity:0; transition:opacity .25s;
+  pointer-events:none; z-index:99; font-family:var(--mono); }
 .toast.show { opacity:1; }
-@media (max-width:640px) {
-  .week { font-size:1.5rem; } main { padding:6px 10px; }
-  .mu-team { font-size:1.25rem; }
-}
+@media (max-width:640px) { .weekbox { font-size:1.6rem; } .mu-team { font-size:1.5rem; } }
 </style>
 </head>
 <body>
 <header>
-  <span class="brand">CIRCA SURVIVOR 2026</span>
-  <span class="week" id="hd-week">…</span>
-  <div class="pills">
-    <span class="pill" id="hd-alive">–</span>
-    <span class="pill" id="hd-locked">–</span>
-    <span class="pill" id="hd-status">–</span>
+  <div class="brand">Circa Survivor<small>2026 · CONTEST BOARD</small></div>
+  <div class="weekbox" id="hd-week">…</div>
+  <div class="leds">
+    <span class="led" id="led-alive"><i></i><span>–</span></span>
+    <span class="led" id="led-lock"><i></i><span>–</span></span>
+    <span class="led" id="led-solver"><i></i><span>–</span></span>
   </div>
 </header>
 <nav id="nav"></nav>
@@ -137,212 +199,233 @@ tr.clickable { cursor:pointer; } tr.clickable:hover td { background:rgba(232,179
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   Circa Survivor SPA — vanilla JS, no build step.
-   All strategy logic lives in the Python backend; this file only
-   renders /api responses and posts user actions.
-   ============================================================ */
 const $ = (s, el=document) => el.querySelector(s);
 const BUCKETS = ["chalk","contrarian","conservation"];
-const BCOLOR = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)", null:"var(--muted)"};
-const BSHORT = {chalk:"CHALK", contrarian:"CONTRARIAN", conservation:"CONSERVE"};
+const BC = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)"};
+const BSHORT = {chalk:"CHALK", contrarian:"CONTRA", conservation:"CONSRV"};
+const GUIDE = [
+  ["CHALK","var(--green)",
+   "Take the safest favorite, full stop. This entry's job is pure survival — it rides the highest win probability available every week.",
+   "How it's built: zero popularity penalty · light team-conservation (0.4×). Objective ≈ maximize log(win prob)."],
+  ["CONTRARIAN","var(--red)",
+   "Fade the crowd. Avoids the most-picked favorite so that when a chalk team loses, this entry gains ground on the whole field instead of dying with it.",
+   "How it's built: heavy popularity penalty (1.5×) against each week's top-prob team · normal conservation (1.0×)."],
+  ["CONSERVE","var(--teal)",
+   "Save the studs. Burns low-value teams (bad season win totals) in their rare good spots and protects elite + holiday-pool teams for when they're needed.",
+   "How it's built: 2.2× future-value penalty — FV = (win total − 8.5)/3 + 0.3 per holiday pool · mild popularity fade (0.3×)."],
+];
 
-let D = null;                       // /api/board payload
+let D = null;
 let dials = JSON.parse(localStorage.getItem("dials") || "null") ||
             {horizon:17, min_prob:0.55, holiday_min_prob:0.50, future_value_weight:0.5, endgame:false};
 let route = location.hash.slice(1) || "board";
-let planSel = {};                   // entry -> selected leg in planner
+let planSel = {};
 
-function toast(msg) {
-  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2200);
-}
-function qs(extra={}) {
-  const p = new URLSearchParams();
-  for (const [k,v] of Object.entries(dials)) p.set(k, v);
-  for (const [k,v] of Object.entries(extra)) p.set(k, v);
-  return p.toString();
-}
-async function api(path, body) {
-  const opt = body ? {method:"POST", headers:{"Content-Type":"application/json"},
-                      body:JSON.stringify(body)} : {};
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2200); }
+function qs(extra={}){ const p=new URLSearchParams();
+  for (const [k,v] of Object.entries(dials)) p.set(k,v);
+  for (const [k,v] of Object.entries(extra)) p.set(k,v); return p.toString(); }
+async function api(path, body){
+  const opt = body ? {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)} : {};
   const r = await fetch(path, opt);
-  if (!r.ok) { const e = await r.json().catch(()=>({detail:r.statusText}));
-               throw new Error(e.detail || r.statusText); }
+  if (!r.ok){ const e = await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail||r.statusText); }
   return r.json();
 }
-async function refresh() {
-  D = await api(`/api/board?${qs()}`);
-  renderHeader(); renderNav(); renderView();
-}
+async function refresh(){ D = await api(`/api/board?${qs()}`); renderHeader(); renderNav(); renderView(); }
 
-/* ---------- header / nav ---------- */
-function renderHeader() {
+/* ---------- header/nav ---------- */
+function renderHeader(){
   $("#hd-week").textContent = D.current_leg;
   const ids = Object.keys(D.entries).sort();
-  const alive = ids.filter(e => D.entries[e].alive).length;
-  const locked = ids.filter(e => D.entries[e].picks[D.current_leg]).length;
-  $("#hd-alive").textContent = `${alive}/${ids.length} alive`;
-  $("#hd-locked").textContent = `${locked}/${alive} locked`;
-  $("#hd-status").textContent = `solver ${D.meta.status}`;
+  const alive = ids.filter(e=>D.entries[e].alive).length;
+  const locked = ids.filter(e=>D.entries[e].picks[D.current_leg]).length;
+  const set = (id, txt, cls) => { const el=$(id); el.querySelector("span").textContent=txt;
+    el.className = "led" + (cls?` ${cls}`:""); };
+  set("#led-alive", `${alive}/${ids.length} alive`, alive<ids.length?"bad":"");
+  set("#led-lock", `${locked}/${alive} locked`, locked<alive?"warn":"");
+  set("#led-solver", `solver ${D.meta.status}`, D.meta.status==="Optimal"?"":"bad");
 }
-function renderNav() {
+function renderNav(){
   const ids = Object.keys(D.entries).sort();
-  const tabs = [["board","🏟 Board"],
-                ...ids.map(e => [`entry-${e}`, `Entry ${e}`]),
-                ["market","📈 Market"], ["tools","🔧 Tools"]];
+  const tabs = [["board","Board"], ...ids.map(e=>[`entry-${e}`,`Entry ${e}`]),
+                ["market","Market"], ["tools","Tools"]];
   $("#nav").innerHTML = tabs.map(([r,l]) =>
     `<button class="${route===r?'on':''}" onclick="go('${r}')">${l}</button>`).join("");
 }
-function go(r) { route = r; location.hash = r; renderNav(); renderView(); }
+function go(r){ route=r; location.hash=r; renderNav(); renderView(); window.scrollTo(0,0); }
 
-/* ---------- shared bits ---------- */
-const rec = t => D.records[t] ? ` <span class="rec">(${D.records[t]})</span>` : "";
+/* ---------- shared ---------- */
+const rec = t => D.records[t] ? ` <span class="dim">(${D.records[t]})</span>` : "";
 const pct = p => p==null ? "—" : (p*100).toFixed(1)+"%";
-function gameFor(gm, team) {
-  for (const [k,m] of Object.entries(gm||{})) {
-    const [away,home] = k.split("|");
-    if (team===away || team===home) return {away, home, m};
-  }
-  return null;
-}
-function effBucket(ent, leg) { return (ent.leg_buckets||{})[leg] || ent.bucket; }
+function gameFor(gm, team){ for (const [k,m] of Object.entries(gm||{})) {
+  const [a,h]=k.split("|"); if (team===a||team===h) return {away:a,home:h,m}; } return null; }
+const effB = (ent,leg) => (ent.leg_buckets||{})[leg] || ent.bucket;
 
-function matchupCard(e, opts={}) {
+function guidePanel(open=false){
+  return `<details class="guidewrap"${open?" open":""}><summary>Strategy guide — what each mode does</summary>
+    <div class="guide">${GUIDE.map(([n,c,what,how]) =>
+      `<div class="gcard" style="border-top-color:${c}"><h4 style="color:${c}">${n}</h4>
+       <p>${what}</p><div class="how">${how}</div></div>`).join("")}</div>
+    <p class="dim" style="margin:8px 0 2px">Set a default per entry (ticket header) and override any single
+    week in the STRATEGY BY WEEK strip — the season plan re-solves instantly around your choices.
+    Holiday weeks are exempt: conserved teams get spent there by design.</p></details>`;
+}
+
+function bucketSelect(e, leg=null){
   const ent = D.entries[e];
-  const leg = D.current_leg;
+  const cur = leg ? (ent.leg_buckets||{})[leg]||"" : ent.bucket||"";
+  const opts = (leg ? [["","(default)"]] : [["","— none —"]])
+    .concat(BUCKETS.map(b=>[b,BSHORT[b]]));
+  return `<select onchange="setBucket('${e}', this.value, ${leg?`'${leg}'`:"null"})"
+    style="${leg?'':'font-weight:700;'}color:${BC[cur]||'var(--dim)'}">
+    ${opts.map(([v,l])=>`<option value="${v}" ${v===cur?"selected":""}>${l}</option>`).join("")}</select>`;
+}
+
+function matchup(e){
+  const ent = D.entries[e], leg = D.current_leg;
   const locked = ent.picks[leg];
   const pick = locked || (D.plan[e]||{})[leg];
-  if (!ent.alive) return `<div class="matchup"><div class="mu-detail">eliminated</div></div>`;
-  if (!pick) return `<div class="matchup"><div class="mu-detail">no pick clears the floor — lower min_prob in Tools</div></div>`;
+  if (!ent.alive) return `<div class="mu"><div class="dim">ELIMINATED</div></div>`;
+  if (!pick) return `<div class="mu"><div class="dim">no pick clears the floor — lower the weekly floor in Tools</div></div>`;
   const p = (D.probs[leg]||{})[pick];
   const g = gameFor(D.game_meta, pick);
-  let opp="", detail="line not posted yet", warn="";
-  if (g) {
-    const isAway = pick===g.away, o = isAway ? g.home : g.away;
-    opp = `<span class="vs">${isAway?"@":"vs"}</span> ${o}${rec(o)} <span class="ha">${isAway?"AWAY":"HOME"}</span>`;
-    const bits = [];
+  let opp="", line="line not posted yet", warn="";
+  if (g){
+    const isA = pick===g.away, o = isA?g.home:g.away;
+    opp = `<span class="opp">${isA?"@":"vs"} ${o}</span>${rec(o)} <span class="tag">${isA?"AWAY":"HOME"}</span>`;
+    const bits=[];
     if (g.m.kickoff_display) bits.push(g.m.kickoff_display);
-    const sh = g.m.spread_home;
-    if (sh!=null) { const sp = pick===g.home ? sh : -sh;
-      bits.push(Math.abs(sp)<0.05 ? "PK" : `${pick} ${sp>0?"+":""}${sp.toFixed(1)}`);
-      if (sp>0.5) warn = `<div class="warn">⚠ underdog by ${sp.toFixed(1)} — verify before locking</div>`; }
-    const ml = pick===g.home ? g.m.ml_home : g.m.ml_away;
+    const sh=g.m.spread_home;
+    if (sh!=null){ const sp = pick===g.home?sh:-sh;
+      bits.push(Math.abs(sp)<0.05?"PK":`${pick} ${sp>0?"+":""}${sp.toFixed(1)}`);
+      if (sp>0.5) warn=`<div class="warnline">⚠ UNDERDOG +${sp.toFixed(1)} — verify before locking</div>`; }
+    const ml = pick===g.home?g.m.ml_home:g.m.ml_away;
     if (ml!=null) bits.push(`ML ${ml>0?"+":""}${ml}`);
-    detail = bits.join(" · ");
+    line = bits.join("  ·  ");
   }
-  const ou = D.win_totals[pick] ? `${D.win_totals[pick].toFixed(1)} O/U` : "";
-  const lockUI = locked
-    ? `<div class="actions"><button class="ghost" onclick="doUnlock('${e}','${leg}')">🔓 Unlock</button></div>`
-    : `<div class="actions">
-         <label class="ck"><input type="checkbox" id="ok-${e}" onchange="$('#lk-${e}').disabled=!this.checked"> confirm</label>
-         <button class="primary" id="lk-${e}" disabled onclick="doLock('${e}','${leg}','${pick}')">🔒 Lock ${pick}</button>
-       </div>`;
-  return `<div class="matchup">
-    <div class="mu-top"><span class="pill ${locked?'st-lock':'st-act'}">${locked?'🔒 LOCKED':'ACT — pick now'}</span><span class="ou">${ou}</span></div>
+  const ou = D.win_totals[pick]?`${D.win_totals[pick].toFixed(1)} O/U`:"";
+  const act = locked
+    ? `<div class="actrow"><button class="sub" onclick="doUnlock('${e}','${leg}')">UNLOCK</button></div>`
+    : `<div class="actrow"><label class="ck"><input type="checkbox"
+         onchange="$('#lk-${e}').disabled=!this.checked"> CONFIRM</label>
+       <button class="go" id="lk-${e}" disabled onclick="doLock('${e}','${leg}','${pick}')">Lock ${pick}</button></div>`;
+  return `<div class="mu">
+    <div class="mu-status"><span class="${locked?'lk':'act'}">${locked?'● LOCKED':'▶ ACTION — PICK NOW'}</span>
+      <span class="dim">${ou}</span></div>
     <div class="mu-team">${pick}${rec(pick)} ${opp}</div>
-    <div class="mu-detail">${detail}</div>
-    <div class="probwrap"><div class="probbar"><div class="probfill" style="width:${(p||0)*100}%"></div></div>
-      <div class="probnum">${pct(p)}</div></div>
-    ${warn}${opts.noLock ? "" : lockUI}
-  </div>`;
+    <div class="mu-line">${line}</div>
+    <div class="probrow"><div class="pbar"><div class="pfill" style="width:${(p||0)*100}%"></div></div>
+      <span class="pnum">${pct(p)}</span></div>
+    ${warn}${act}</div>`;
 }
 
-function rail(e, plan, probs, clickable=true) {
+function rail(e){
   const ent = D.entries[e];
-  const tiles = D.loaded_legs.map(({id:lid, holiday}) => {
-    const locked = ent.picks[lid];
-    const planned = (plan[e]||{})[lid];
-    const icon = lid==="TXWEEK" ? "🎄" : lid==="XMASWEEK" ? "🎁" : "";
-    const bkt = effBucket(ent, lid);
-    let cls, team, sub;
-    if (locked)      { cls="locked"; team=`✓ ${locked}`; sub="locked"; }
-    else if (lid===D.current_leg && planned) { cls="now"; team=planned; sub=pct((probs[lid]||{})[planned]); }
-    else if (holiday && planned) { cls="hol"; team=planned; sub=pct((probs[lid]||{})[planned]); }
-    else if (planned) { cls="plan"; team=planned; sub=pct((probs[lid]||{})[planned]); }
-    else { cls="gap"; team="·"; sub=""; }
-    const chip = (!holiday && bkt) ? `<div class="tile-chip" style="color:${BCOLOR[bkt]}">${BSHORT[bkt]}</div>` : "";
-    const click = clickable ? `onclick="openPlanner('${e}','${lid}')"` : "";
-    return `<div class="tile ${cls}" ${click} title="plan ${lid}">
-      <div class="tile-week">${icon}${lid}</div><div class="tile-team">${team}</div>
-      <div class="tile-sub">${sub}</div>${chip}</div>`;
-  });
-  return `<div class="rail">${tiles.join("")}</div>`;
+  return `<div class="rail">` + D.loaded_legs.map(({id:lid, holiday}) => {
+    const lockedT = ent.picks[lid];
+    const planned = (D.plan[e]||{})[lid];
+    const icon = lid==="TXWEEK"?"🎄":lid==="XMASWEEK"?"🎁":"";
+    const b = effB(ent, lid);
+    let cls, tm, sub;
+    if (lockedT){ cls="locked"; tm=`✓${lockedT}`; sub="LOCK"; }
+    else if (lid===D.current_leg && planned){ cls="now"; tm=planned; sub=pct((D.probs[lid]||{})[planned]); }
+    else if (holiday && planned){ cls="hol"; tm=planned; sub=pct((D.probs[lid]||{})[planned]); }
+    else if (planned){ cls=""; tm=planned; sub=pct((D.probs[lid]||{})[planned]); }
+    else { cls="gap"; tm="—"; sub=""; }
+    const chip = (!holiday&&b)?`<div class="cw-b" style="color:${BC[b]}">${BSHORT[b]}</div>`:"";
+    return `<div class="cellw ${cls}" onclick="openPlanner('${e}','${lid}')" title="plan ${lid}">
+      <div class="cw-wk">${icon}${lid}</div><div class="cw-tm">${tm}</div>
+      <div class="cw-p">${sub}</div>${chip}</div>`;
+  }).join("") + `</div>`;
 }
 
-function holidayChips(e) {
+function stratStrip(e){
+  const cells = D.loaded_legs.filter(l=>!l.holiday).map(({id:lid}) =>
+    `<div class="scell"><div class="wk">${lid}${lid===D.current_leg?" ●":""}</div>${bucketSelect(e, lid)}</div>`);
+  return `<div class="stratstrip">${cells.join("")}</div>`;
+}
+
+function holidayPanels(e){
   const ent = D.entries[e];
-  return `<div class="hwrap">` + ["TXWEEK","XMASWEEK"].map(hw => {
-    const icon = hw==="TXWEEK" ? "🎄" : "🎁";
+  return `<div class="holgrid">` + [["TXWEEK","🎄 THANKSGIVING"],["XMASWEEK","🎁 CHRISTMAS"]].map(([hw,label]) => {
     const pool = D.pools[hw];
-    const locked = ent.picks[hw];
-    const remaining = pool.filter(t => !ent.used.includes(t));
-    const body = locked ? `locked <b>${locked}</b>`
-      : remaining.length===0 ? `<b style="color:var(--red)">EXHAUSTED</b>`
-      : `<b>${remaining.length}</b>/${pool.length} live`;
-    return `<span class="hchip">${icon} ${hw}: ${body}</span>`;
-  }).join(" ") + `</div>`;
+    const lockedT = ent.picks[hw];
+    const planned = (D.plan[e]||{})[hw];
+    const avail = pool.filter(t=>!ent.used.includes(t));
+    const chips = pool.map(t => {
+      const p = (D.probs[hw]||{})[t];
+      const ptxt = p!=null?` ${Math.round(p*100)}%`:"";
+      if (lockedT===t) return `<span class="tchip lockedt">${t} ✓</span>`;
+      if (!avail.includes(t)) return `<span class="tchip burned">${t}</span>`;
+      if (planned===t) return `<span class="tchip planned" onclick="openPlanner('${e}','${hw}')">${t}${ptxt} ◈</span>`;
+      return `<span class="tchip avail" onclick="openPlanner('${e}','${hw}')">${t}${ptxt}</span>`;
+    }).join("");
+    const n = lockedT ? `LOCKED ${lockedT}` : `${avail.length}/${pool.length} AVAILABLE`;
+    return `<div class="holpanel"><h5>${label} <span class="n">${n}</span></h5>
+      <div class="chips">${chips}</div></div>`;
+  }).join("") + `</div>
+  <p class="dim" style="margin-top:6px">◈ = model reservation · struck = burned in an earlier week · tap a team to plan that holiday</p>`;
 }
 
 /* ---------- views ---------- */
-function renderView() {
+function renderView(){
   const m = $("#main");
-  m.innerHTML = "";
   const ids = Object.keys(D.entries).sort();
-  for (const b of document.querySelectorAll("#nav button")) b.classList.remove("on");
   renderNav();
 
-  if (route === "board") {
-    m.innerHTML = `<div class="grid">` + ids.map(e => {
-      const ent = D.entries[e];
-      const bkt = ent.bucket;
-      return `<div class="entry">
-        <div class="e-head"><span class="e-dot" style="background:${ent.alive?'var(--green)':'var(--red)'}"></span>
-          <span class="e-name">ENTRY ${e}</span>
-          <button class="chip" style="color:${BCOLOR[bkt]};border-color:${BCOLOR[bkt]}44"
-            onclick="cycleBucket('${e}')" title="click to change default bucket">${BSHORT[bkt]||"NO BUCKET"}</button></div>
-        ${matchupCard(e)}
-        ${rail(e, D.plan, D.probs)}
-        ${holidayChips(e)}
-      </div>`;
-    }).join("") + `</div>
-    <h2>DECORRELATION</h2><div>${decChips()}</div>
-    <p class="mut" style="margin-top:8px">Tap any week tile to open its planner. Bucket chip cycles chalk → contrarian → conserve.</p>`;
+  if (route==="board"){
+    m.innerHTML = guidePanel(false) +
+      `<div class="grid" style="margin-top:12px">` + ids.map(e => {
+        const ent = D.entries[e];
+        return `<div class="ticket" style="border-left-color:${BC[ent.bucket]||'var(--amber)'}">
+          <div class="t-head"><span class="st" style="background:${ent.alive?'var(--green)':'var(--red)'}"></span>
+            <span class="nm">ENTRY ${e}</span>${bucketSelect(e)}</div>
+          <div class="t-body">
+            ${matchup(e)}
+            <h2 style="margin-top:4px">Season</h2>
+            ${rail(e)}
+            <h2>Strategy by week</h2>
+            ${stratStrip(e)}
+            <h2>Holiday pools</h2>
+            ${holidayPanels(e)}
+          </div></div>`;
+      }).join("") + `</div>
+      <h2>Decorrelation</h2><div>${decChips()}</div>
+      <p class="dim" style="margin-top:6px">Tap any season cell to plan that week · strategy dropdowns re-solve the plan instantly</p>`;
   }
 
-  else if (route.startsWith("entry-")) {
+  else if (route.startsWith("entry-")){
     const e = route.slice(6);
     const leg = planSel[e] || D.current_leg;
     m.innerHTML = `
-      <h2>ENTRY ${e} · SEASON</h2>
-      ${rail(e, D.plan, D.probs)}
-      <h2>THIS WEEK</h2>
-      ${matchupCard(e)}
-      <h2>PLAN ANY WEEK</h2>
+      <h2>Entry ${e} · Season</h2>${rail(e)}
+      <h2>Strategy by week</h2>${stratStrip(e)}
+      <h2>This week</h2>${matchup(e)}
+      <h2>Holiday pools</h2>${holidayPanels(e)}
+      <h2>Plan any week</h2>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="plan-leg" onchange="openPlanner('${e}', this.value)">
-          ${D.loaded_legs.map(({id}) => `<option value="${id}" ${id===leg?"selected":""}>${weekLabel(e,id)}</option>`).join("")}
-        </select>
-        <span class="mut">pick a week — explore alternatives, pin, or unlock</span>
-      </div>
+          ${D.loaded_legs.map(({id})=>`<option value="${id}" ${id===leg?"selected":""}>${weekLabel(e,id)}</option>`).join("")}
+        </select><span class="dim">explore alternatives · pin · unlock</span></div>
       <div id="planner"></div>`;
     loadPlanner(e, leg);
   }
 
-  else if (route === "market") {
-    m.innerHTML = `<h2>LINE MOVEMENT</h2>
+  else if (route==="market"){
+    m.innerHTML = `<h2>Line movement</h2>
       <div style="display:flex;gap:10px;align-items:center">
-        <select id="mkt-leg">${D.loaded_legs.map(({id}) =>
-          `<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
-        <button class="primary" onclick="loadMarket()">Load</button>
-        <button class="ghost" onclick="ingestLines()">Ingest lines → solver</button>
-      </div><div id="mkt"></div>`;
+        <select id="mkt-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
+        <button class="go" onclick="loadMarket()">Load</button>
+        <button class="sub" onclick="ingestLines()">INGEST LINES → SOLVER</button></div>
+      <div id="mkt"></div>`;
     loadMarket();
   }
 
-  else if (route === "tools") {
+  else if (route==="tools"){
     m.innerHTML = `
-      <h2>SOLVER DIALS</h2>
+      ${guidePanel(true)}
+      <h2>Solver dials</h2>
       <div class="dials">
         ${dial("horizon","Horizon (weeks planned)",1,17,1)}
         ${dial("min_prob","Weekly floor",0.40,0.70,0.01)}
@@ -350,194 +433,180 @@ function renderView() {
         ${dial("future_value_weight","Team conservation",0,1.2,0.05)}
         <div class="dial"><label>Endgame (straddles)</label>
           <label class="ck"><input type="checkbox" ${dials.endgame?"checked":""}
-            onchange="dials.endgame=this.checked;saveDials()"> enable</label></div>
+            onchange="dials.endgame=this.checked;saveDials()"> ENABLE</label></div>
       </div>
-      <h2>WEEK CONTROL</h2>
+      <h2>Week control</h2>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <select id="adv-leg">${D.loaded_legs.map(({id}) =>
-          `<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
-        <button class="ghost" onclick="advanceWeek()">Set current week</button>
-      </div>
-      <h2>ELO NUDGE</h2>
+        <select id="adv-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
+        <button class="sub" onclick="advanceWeek()">SET CURRENT WEEK</button></div>
+      <h2>Elo nudge</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <select id="nudge-team">${Object.keys(D.win_totals).sort().map(t=>`<option>${t}</option>`).join("")}</select>
         <input type="number" id="nudge-delta" value="0" step="5" style="width:90px">
-        <input type="text" id="nudge-note" placeholder="note (logged)" style="flex:1;min-width:160px">
-        <button class="ghost" onclick="doNudge()">Apply</button>
-      </div>
-      <h2>INJURIES</h2>
-      <button class="ghost" onclick="loadInjuries()">Fetch high-severity report</button>
-      <div id="inj"></div>
-      <h2>INTEGRITY CHECK</h2>
-      <button class="primary" onclick="runCheck()">Run check</button>
-      <div id="chk"></div>`;
+        <input type="text" id="nudge-note" placeholder="note (logged)" style="flex:1;min-width:150px">
+        <button class="sub" onclick="doNudge()">APPLY</button></div>
+      <h2>Injuries</h2>
+      <button class="sub" onclick="loadInjuries()">FETCH HIGH-SEVERITY REPORT</button><div id="inj"></div>
+      <h2>Integrity check</h2>
+      <button class="go" onclick="runCheck()">Run check</button><div id="chk"></div>`;
   }
 }
 
-function weekLabel(e, lid) {
+function weekLabel(e, lid){
   const ent = D.entries[e];
-  const icon = lid==="TXWEEK" ? "🎄 " : lid==="XMASWEEK" ? "🎁 " : "";
-  if (ent.picks[lid]) return `${icon}${lid} — 🔒 ${ent.picks[lid]}`;
+  const icon = lid==="TXWEEK"?"🎄 ":lid==="XMASWEEK"?"🎁 ":"";
+  if (ent.picks[lid]) return `${icon}${lid} — LOCKED ${ent.picks[lid]}`;
   const t = (D.plan[e]||{})[lid];
-  const bkt = effBucket(ent, lid) || "—";
-  if (t) { const p = (D.probs[lid]||{})[t];
-    return `${icon}${lid} — ${t} (${p?Math.round(p*100)+"%":"?"}) · ${bkt}${lid===D.current_leg?" ← now":""}`; }
-  return `${icon}${lid} — no pick above floor · ${bkt}`;
+  const b = effB(ent,lid)||"—";
+  if (t){ const p=(D.probs[lid]||{})[t];
+    return `${icon}${lid} — ${t} (${p?Math.round(p*100)+"%":"?"}) · ${b}${lid===D.current_leg?" ← NOW":""}`; }
+  return `${icon}${lid} — none above floor · ${b}`;
 }
-function decChips() {
+function decChips(){
   const ids = Object.keys(D.entries).sort();
   const scope = new Set([...(D.meta.near_term||[]), ...(D.meta.holiday||[])]);
-  return D.loaded_legs.filter(({id}) => scope.has(id)).slice(0,10).map(({id:lid}) => {
-    const teams = ids.map(e => D.entries[e].picks[lid] || (D.plan[e]||{})[lid]).filter(Boolean);
-    if (teams.length < 2) return "";
-    const ok = new Set(teams).size === teams.length;
-    return `<span class="dchip ${ok?'ok':'bad'}">${lid}: ${teams.join(" / ")}</span>`;
+  return D.loaded_legs.filter(({id})=>scope.has(id)).slice(0,12).map(({id:lid}) => {
+    const teams = ids.map(e=>D.entries[e].picks[lid]||(D.plan[e]||{})[lid]).filter(Boolean);
+    if (teams.length<2) return "";
+    const ok = new Set(teams).size===teams.length;
+    return `<span class="dchip ${ok?'ok':'bad'}">${lid} ${teams.join("/")}</span>`;
   }).join("");
 }
-function dial(key, label, min, max, step) {
+function dial(key,label,min,max,step){
   return `<div class="dial"><label>${label} — <span class="dv" id="dv-${key}">${dials[key]}</span></label>
     <input type="range" min="${min}" max="${max}" step="${step}" value="${dials[key]}"
       oninput="$('#dv-${key}').textContent=this.value"
       onchange="dials['${key}']=parseFloat(this.value);saveDials()"></div>`;
 }
-function saveDials() { localStorage.setItem("dials", JSON.stringify(dials)); toast("re-solving…"); refresh(); }
+function saveDials(){ localStorage.setItem("dials", JSON.stringify(dials)); toast("re-solving…"); refresh(); }
 
 /* ---------- planner ---------- */
-function openPlanner(e, leg) {
-  planSel[e] = leg;
-  if (route !== `entry-${e}`) { go(`entry-${e}`); }
-  else { const sel = $("#plan-leg"); if (sel) sel.value = leg; loadPlanner(e, leg); }
+function openPlanner(e, leg){
+  planSel[e]=leg;
+  if (route!==`entry-${e}`) go(`entry-${e}`);
+  else { const s=$("#plan-leg"); if (s) s.value=leg; loadPlanner(e, leg); }
 }
-async function loadPlanner(e, leg) {
-  const el = $("#planner");
-  el.innerHTML = `<p class="mut">loading ${leg}…</p>`;
+async function loadPlanner(e, leg){
+  const el = $("#planner"); el.innerHTML = `<p class="dim">loading ${leg}…</p>`;
   try {
     const P = await api(`/api/plan?entry=${e}&leg=${leg}&${qs()}`);
-    if (P.locked) {
-      el.innerHTML = `<div class="banner info">${leg} is locked on <b>${P.locked_team}</b>.</div>
+    if (P.locked){
+      el.innerHTML = `<div class="banner info">${leg} is LOCKED on <b>${P.locked_team}</b>.</div>
         <label class="ck"><input type="checkbox" id="unlock-ok"> confirm unlock</label>
-        <div class="actions"><button class="ghost" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">🔓 Unlock ${leg}</button></div>`;
+        <div class="actrow"><button class="sub" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">UNLOCK ${leg}</button></div>`;
       return;
     }
-    if (!P.alternatives.length) {
+    if (!P.alternatives.length){
       el.innerHTML = `<div class="banner info">No teams above the floor for ${leg}. Lower the weekly floor in Tools.</div>`;
       return;
     }
-    el.innerHTML = `<table><thead><tr>
-        <th>Team</th><th>Win%</th><th>O/U</th><th>Pool</th><th>Stack</th><th>FV</th><th></th>
-      </tr></thead><tbody>` +
+    el.innerHTML = `<table><thead><tr><th>Team</th><th class="num">Win%</th><th class="num">O/U</th>
+      <th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
       P.alternatives.map(a => `<tr class="${a.is_rec?'rec':''} clickable" onclick="runWhatIf('${e}','${leg}','${a.team}')">
         <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
-        <td>${pct(a.win_prob)}</td>
-        <td>${a.ou!=null?a.ou.toFixed(1):"—"}</td>
+        <td class="num">${pct(a.win_prob)}</td>
+        <td class="num">${a.ou!=null?a.ou.toFixed(1):"—"}</td>
         <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
         <td>${a.stacks_with.join(",")||"—"}</td>
-        <td>${a.fv>=0.8?"🛑":a.fv>=0.35?"🤔":"✅"}</td>
-        <td class="mut">explore →</td>
-      </tr>`).join("") + `</tbody></table>
-      <p class="mut">★ = model pick · click a row to see how choosing it reshapes the season</p>
+        <td>${a.fv>=0.8?"🛑 hold":a.fv>=0.35?"🤔 costly":"✅ burn"}</td>
+        <td class="dim">explore →</td></tr>`).join("") + `</tbody></table>
+      <p class="dim">★ model pick · FV = season value of NOT burning the team now · click a row to see the ripple</p>
       <div id="whatif"></div>`;
-  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
-async function runWhatIf(e, leg, team) {
-  const el = $("#whatif");
-  el.innerHTML = `<p class="mut">re-solving season around ${team}…</p>`;
+async function runWhatIf(e, leg, team){
+  const el = $("#whatif"); el.innerHTML = `<p class="dim">re-solving season around ${team}…</p>`;
   try {
     const W = await api("/api/whatif", {entry:e, leg, team, ...dials});
-    if (W.status !== "Optimal") {
-      el.innerHTML = `<div class="banner err">Solver: ${W.status}. This pick likely breaks a hard
-        constraint (e.g. exhausts a holiday pool). Strong signal NOT to take it.</div>`;
-      return;
-    }
-    const d = (W.p_choice!=null && W.p_model!=null) ? W.p_choice - W.p_model : null;
-    const ids = Object.keys(D.entries).sort();
+    if (W.status!=="Optimal"){
+      el.innerHTML = `<div class="banner err">SOLVER: ${W.status}. This pick likely breaks a hard constraint
+        (e.g. exhausts a holiday pool). Strong signal NOT to take it.</div>`; return; }
+    const d = (W.p_choice!=null&&W.p_model!=null)?W.p_choice-W.p_model:null;
     el.innerHTML = `
       <div class="metricrow">
         <div class="metric"><div class="lbl">MODEL · ${W.model_pick||"—"}</div><div class="val">${pct(W.p_model)}</div></div>
         <div class="metric"><div class="lbl">YOURS · ${team}</div><div class="val">${pct(W.p_choice)}
-          ${d!=null?`<span class="${d>=0?'delta-up':'delta-dn'}">${d>=0?"+":""}${(d*100).toFixed(1)}%</span>`:""}</div></div>
-      </div>
-      ${W.ripple.length ? `<div class="banner info">Portfolio ripple: ` +
-        W.ripple.map(r=>`E${r.entry} ${r.leg}: ${r.before}→${r.after}`).join(" · ") + `</div>` : ""}
+          ${d!=null?`<span class="${d>=0?'up':'dn'}">${d>=0?"+":""}${(d*100).toFixed(1)}%</span>`:""}</div></div></div>
+      ${W.ripple.length?`<div class="banner info">PORTFOLIO RIPPLE: `+
+        W.ripple.map(r=>`E${r.entry} ${r.leg}: ${r.before}→${r.after}`).join(" · ")+`</div>`:""}
       <table><thead><tr><th>Week</th><th>Current plan</th><th>With ${team}</th><th></th></tr></thead><tbody>` +
-      W.diff.map(r => `<tr><td>${r.leg}</td>
+      W.diff.map(r=>`<tr><td>${r.leg}</td>
         <td>${r.before?`${r.before} (${Math.round((r.pb||0)*100)}%)`:"—"}</td>
         <td>${r.after?`${r.after} (${Math.round((r.pa||0)*100)}%)`:"—"}</td>
         <td>${r.changed?"🔄":""}</td></tr>`).join("") + `</tbody></table>
-      <label class="ck"><input type="checkbox" id="pin-ok"
-        onchange="$('#pin-btn').disabled=!this.checked"> confirm</label>
-      <div class="actions">
-        <button class="primary" id="pin-btn" disabled onclick="doLock('${e}','${leg}','${team}')">
-          ${leg===D.current_leg?`🔒 Lock ${team}`:`📌 Pin ${team} for ${leg}`}</button>
-      </div>`;
-  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+      <label class="ck"><input type="checkbox" onchange="$('#pin-btn').disabled=!this.checked"> CONFIRM</label>
+      <div class="actrow"><button class="go" id="pin-btn" disabled onclick="doLock('${e}','${leg}','${team}')">
+        ${leg===D.current_leg?`Lock ${team}`:`Pin ${team} · ${leg}`}</button></div>`;
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
 
 /* ---------- actions ---------- */
-async function doLock(e, leg, team) {
-  try { await api("/api/lock", {entry:e, leg, team}); toast(`Locked ${team} · ${leg}`); await refresh(); }
-  catch (err) { toast(`⚠ ${err.message}`); }
+async function setBucket(e, bucket, leg){
+  try {
+    await api("/api/bucket", {entry:e, bucket:bucket||null, leg:leg||null});
+    toast(leg ? `${leg} → ${bucket||"default"}` : `Entry ${e} default → ${bucket||"none"}`);
+    await refresh();
+  } catch(err){ toast(`⚠ ${err.message}`); }
 }
-async function doUnlock(e, leg) {
-  try { const r = await api("/api/unlock", {entry:e, leg}); toast(`Unlocked ${r.removed} · ${leg}`); await refresh(); }
-  catch (err) { toast(`⚠ ${err.message}`); }
+async function doLock(e, leg, team){
+  try { await api("/api/lock",{entry:e,leg,team}); toast(`LOCKED ${team} · ${leg}`); await refresh(); }
+  catch(err){ toast(`⚠ ${err.message}`); }
 }
-async function cycleBucket(e) {
-  const cur = D.entries[e].bucket;
-  const next = BUCKETS[(BUCKETS.indexOf(cur)+1) % BUCKETS.length] || "chalk";
-  await api("/api/bucket", {entry:e, bucket:next});
-  toast(`Entry ${e} → ${next}`); await refresh();
+async function doUnlock(e, leg){
+  try { const r=await api("/api/unlock",{entry:e,leg}); toast(`UNLOCKED ${r.removed} · ${leg}`); await refresh(); }
+  catch(err){ toast(`⚠ ${err.message}`); }
 }
-async function advanceWeek() {
-  await api("/api/advance", {leg: $("#adv-leg").value});
-  toast("current week updated"); await refresh();
-}
-async function doNudge() {
+async function advanceWeek(){ await api("/api/advance",{leg:$("#adv-leg").value});
+  toast("current week updated"); await refresh(); }
+async function doNudge(){
   const delta = parseFloat($("#nudge-delta").value);
-  if (!delta) { toast("delta is 0"); return; }
-  const r = await api("/api/nudge", {team:$("#nudge-team").value, delta, note:$("#nudge-note").value||null});
-  toast(`nudged (cumulative ${r.cumulative>0?"+":""}${r.cumulative})`); await refresh();
-}
-async function loadMarket() {
-  const el = $("#mkt"); el.innerHTML = `<p class="mut">loading…</p>`;
+  if (!delta){ toast("delta is 0"); return; }
+  const r = await api("/api/nudge",{team:$("#nudge-team").value, delta, note:$("#nudge-note").value||null});
+  toast(`nudged (cumulative ${r.cumulative>0?"+":""}${r.cumulative})`); await refresh(); }
+async function loadMarket(){
+  const el=$("#mkt"); el.innerHTML=`<p class="dim">loading…</p>`;
   try {
     const M = await api(`/api/market?leg=${$("#mkt-leg").value}`);
-    el.innerHTML = `<table><thead><tr><th>Game</th><th>Kickoff</th><th>Spread</th>
-      <th>ML home</th><th>ML away</th><th>Total</th><th>Money →</th></tr></thead><tbody>` +
-      M.rows.map(r => `<tr>
-        <td><b>${r.away} @ ${r.home}</b></td><td class="mut">${r.kickoff||"—"}</td>
-        <td>${r.spread_open!=null&&r.spread!=null?`${r.spread_open} → ${r.spread}`:(r.spread??"—")}</td>
-        <td>${r.ml_home_open!=null?`${r.ml_home_open} → ${r.ml_home}`:(r.ml_home??"—")}</td>
-        <td>${r.ml_away_open!=null?`${r.ml_away_open} → ${r.ml_away}`:(r.ml_away??"—")}</td>
-        <td>${r.total??"—"}</td><td>${r.moving||"—"}</td></tr>`).join("") + `</tbody></table>
-      <p class="mut">Home spread more negative or ML shortening = money on that side.</p>`;
-  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+    el.innerHTML = `<table><thead><tr><th>Game</th><th>Kickoff</th><th class="num">Spread</th>
+      <th class="num">ML home</th><th class="num">ML away</th><th class="num">Total</th><th>Money →</th></tr></thead><tbody>`+
+      M.rows.map(r=>`<tr><td><b>${r.away} @ ${r.home}</b></td><td class="dim">${r.kickoff||"—"}</td>
+        <td class="num">${r.spread_open!=null&&r.spread!=null?`${r.spread_open} → ${r.spread}`:(r.spread??"—")}</td>
+        <td class="num">${r.ml_home_open!=null?`${r.ml_home_open} → ${r.ml_home}`:(r.ml_home??"—")}</td>
+        <td class="num">${r.ml_away_open!=null?`${r.ml_away_open} → ${r.ml_away}`:(r.ml_away??"—")}</td>
+        <td class="num">${r.total??"—"}</td><td>${r.moving||"—"}</td></tr>`).join("")+`</tbody></table>
+      <p class="dim">Home spread more negative or ML shortening = money on that side. Movement against the
+      public side = reverse line movement, the strongest sharp signal.</p>`;
+  } catch(err){ el.innerHTML=`<div class="banner err">${err.message}</div>`; }
 }
-async function ingestLines() {
-  try { const r = await api("/api/lines", {leg:$("#mkt-leg").value});
-        toast(`ingested ${r.applied} lines (${r.skipped} skipped)`); await refresh(); }
-  catch (err) { toast(`⚠ ${err.message}`); }
+async function ingestLines(){
+  try { const r=await api("/api/lines",{leg:$("#mkt-leg").value});
+    toast(`ingested ${r.applied} lines (${r.skipped} skipped)`); await refresh(); }
+  catch(err){ toast(`⚠ ${err.message}`); }
 }
-async function loadInjuries() {
-  const el = $("#inj"); el.innerHTML = `<p class="mut">fetching…</p>`;
+async function loadInjuries(){
+  const el=$("#inj"); el.innerHTML=`<p class="dim">fetching…</p>`;
   try {
     const I = await api("/api/injuries?severity=high");
-    if (!I.teams.length) { el.innerHTML = `<p class="mut">no high-severity injuries right now</p>`; return; }
-    el.innerHTML = I.teams.slice(0,12).map(t =>
-      `<p><b>${t.team}</b> <span class="mut">(alert ${t.score})</span> — ` +
-      t.rows.slice(0,4).map(r=>`${r.position} ${r.name} (${r.status})`).join("; ") + `</p>`).join("");
-  } catch (err) { el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+    if (!I.teams.length){ el.innerHTML=`<p class="dim">no high-severity injuries right now</p>`; return; }
+    el.innerHTML = I.teams.slice(0,12).map(t=>
+      `<p style="margin:6px 0"><b>${t.team}</b> <span class="dim">(alert ${t.score})</span> — `+
+      t.rows.slice(0,4).map(r=>`${r.position} ${r.name} (${r.status})`).join("; ")+`</p>`).join("");
+  } catch(err){ el.innerHTML=`<div class="banner err">${err.message}</div>`; }
 }
-async function runCheck() {
-  const el = $("#chk"); el.innerHTML = `<p class="mut">running…</p>`;
+async function runCheck(){
+  const el=$("#chk"); el.innerHTML=`<p class="dim">running…</p>`;
   const C = await api("/api/check");
-  el.innerHTML = C.passes.map(p=>`<div class="banner ok">✓ ${p}</div>`).join("") +
+  el.innerHTML = C.passes.map(p=>`<div class="banner ok">✓ ${p}</div>`).join("")+
                  C.failures.map(f=>`<div class="banner err">✗ ${f}</div>`).join("");
 }
 
 /* ---------- boot ---------- */
-window.addEventListener("hashchange", () => { route = location.hash.slice(1) || "board"; renderView(); });
-refresh().catch(err => { $("#main").innerHTML = `<div class="banner err">Failed to load: ${err.message}</div>`; });
+window.addEventListener("hashchange", ()=>{ route=location.hash.slice(1)||"board"; renderView(); });
+refresh().catch(err => {
+  $("#main").innerHTML = `<div class="banner err">Backend not reachable (${err.message}).
+    The app is served by the Mac mini service on port 8600 — if you opened the HTML file directly,
+    open <b>http://localhost:8600</b> instead.</div>`;
+});
 </script>
 </body>
 </html>
