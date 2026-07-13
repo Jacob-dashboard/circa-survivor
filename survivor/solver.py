@@ -39,26 +39,27 @@ from . import state as state_mod
 
 
 # Per-bucket contrarian weight: how hard to avoid the popular/chalk pick.
-# "neutral" = NO strategy shaping at all — pure win-prob maximization. Distinct
-# from None (unset), which is a balanced middle profile.
+# None (blank / no strategy input) = NO shaping at all — the model just
+# maximizes win probability. "neutral" is kept as an accepted alias for
+# backward compatibility but the UIs no longer offer it.
 DEFAULT_CONTRARIAN_BY_BUCKET = {
     "chalk":        0.0,   # take the safest favorite
     "contrarian":   1.5,   # actively fade the obvious pick
     "conservation": 0.3,   # mild fade; conservation is about roster, not popularity
-    "neutral":      0.0,   # no shaping
-    None:           0.6,
+    "neutral":      0.0,   # legacy alias for blank
+    None:           0.0,   # blank = no strategy input = pure win prob
 }
 
 # Per-bucket multiplier on the future-value (conservation) penalty. This is
 # what makes "conservation" mean what its name says: hoard strong / holiday-
 # pool teams and spend weak teams early. Chalk barely conserves (it just wants
-# the safest team now); conservation conserves hard; neutral not at all.
+# the safest team now); conservation conserves hard; blank not at all.
 DEFAULT_FV_MULT_BY_BUCKET = {
     "chalk":        0.4,
     "contrarian":   1.0,
     "conservation": 2.2,
-    "neutral":      0.0,
-    None:           1.0,
+    "neutral":      0.0,   # legacy alias for blank
+    None:           0.0,   # blank = no strategy input
 }
 
 

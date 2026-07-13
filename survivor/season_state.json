@@ -94,7 +94,7 @@
       "alive": true,
       "used_teams": [],
       "picks": {},
-      "bucket": "contrarian",
+      "bucket": null,
       "leg_buckets": {
         "W1": "conservation",
         "W3": "conservation",

@@ -215,6 +215,7 @@ input[type=number], input[type=text] { background:var(--panel2); color:var(--tex
 .cell-a { background:rgba(224,177,92,.12); }
 .cell-r { background:rgba(248,113,113,.10); }
 .rowused td { opacity:.35; text-decoration:line-through; }
+.best { color:var(--amber); font-weight:800; }
 </style>
 </head>
 <body>
@@ -233,7 +234,7 @@ input[type=number], input[type=text] { background:var(--panel2); color:var(--tex
 
 <script>
 const $ = (s, el=document) => el.querySelector(s);
-const BUCKETS = ["chalk","contrarian","conservation","neutral"];
+const BUCKETS = ["chalk","contrarian","conservation"];
 const BC = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)", neutral:"var(--dim)"};
 const BSHORT = {chalk:"Chalk", contrarian:"Contra", conservation:"Conserve", neutral:"Neutral"};
 const GUIDE = [
@@ -243,9 +244,6 @@ const GUIDE = [
   ["Contrarian","var(--red)",
    "Fade the crowd. Avoids the most-picked favorite so that when a chalk team loses, this entry gains ground on the whole field instead of dying with it.",
    "How it's built: heavy popularity penalty (1.5×) against each week's top-prob team · normal conservation (1.0×)."],
-  ["Neutral","var(--dim)",
-   "No strategy shaping at all — pure win probability, nothing else. Use it to see the raw model view for a week, or run whole projections unshaped.",
-   "How it's built: zero popularity penalty · zero conservation. Objective = maximize log(win prob), untouched."],
   ["Conserve","var(--teal)",
    "Save the studs. Burns low-value teams (bad season win totals) in their rare good spots and protects elite + holiday-pool teams for when they're needed.",
    "How it's built: 2.2× future-value penalty — FV = (win total − 8.5)/3 + 0.3 per holiday pool · mild popularity fade (0.3×)."],
@@ -314,14 +312,14 @@ function guidePanel(open=false){
       `<div class="gcard" style="border-top-color:${c}"><h4 style="color:${c}">${n}</h4>
        <p>${what}</p><div class="how">${how}</div></div>`).join("")}</div>
     <p class="dim" style="margin:8px 0 2px">Set a default per entry (ticket header) and override any single
-    week in the Strategy by week strip — Neutral turns shaping off entirely; leaving a week (entry default) inherits the header setting — the season plan re-solves instantly around your choices.
+    week in the Strategy by week strip — leave a week blank to inherit the entry default; a blank default means no strategy at all (the model simply takes the best win probability) — the season plan re-solves instantly around your choices.
     Holiday weeks are exempt: conserved teams get spent there by design.</p></details>`;
 }
 
 function bucketSelect(e, leg=null){
   const ent = D.entries[e];
   const cur = leg ? (ent.leg_buckets||{})[leg]||"" : ent.bucket||"";
-  const opts = (leg ? [["","(default)"]] : [["","Balanced (unset)"]])
+  const opts = (leg ? [["","—"]] : [["","—"]])
     .concat(BUCKETS.map(b=>[b,BSHORT[b]]));
   return `<select onchange="setBucket('${e}', this.value, ${leg?`'${leg}'`:"null"})"
     style="${leg?'':'font-weight:700;'}color:${BC[cur]||'var(--dim)'}">
@@ -470,7 +468,7 @@ function renderView(){
         </select>
         <label class="ck"><input type="checkbox" ${hideUsed?"checked":""}
           onchange="localStorage.setItem('teams_hideused', this.checked?'1':'0');renderView()"> hide used teams</label>
-        <span class="dim">cell = opponent + win% · green ≥60 · gold 50–60 · red <50 · blank = bye</span>
+        <span class="dim"><span class="best">★</span> = best remaining week to use the team (highest win%) · cell = opponent + win% · <span style="color:var(--green)">green ≥60</span> · <span style="color:var(--amber)">gold 50–60</span> · <span style="color:var(--red)">red &lt;50</span> · — = bye · 🎄/🎁 = holiday pool</span>
       </div><div id="tmx" class="tmx"><p class="dim" style="padding:14px">loading…</p></div>`;
     loadTeams(sel, hideUsed);
   }
@@ -508,6 +506,13 @@ function renderView(){
         <input type="number" id="nudge-delta" value="0" step="5" style="width:90px">
         <input type="text" id="nudge-note" placeholder="note (logged)" style="flex:1;min-width:150px">
         <button class="sub" onclick="doNudge()">Apply</button></div>
+      <h2>Verify results</h2>
+      <p class="dim">Run after games finish: pulls final scores from ESPN and records
+        survived / eliminated for every locked pick in the week (tie = loss, Rule 6a).</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <select id="ver-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
+        <button class="go" onclick="runVerify()">Verify week</button></div>
+      <div id="ver"></div>
       <h2>Injuries</h2>
       <button class="sub" onclick="loadInjuries()">Fetch high-severity report</button><div id="inj"></div>
       <h2>Integrity check</h2>
@@ -642,11 +647,18 @@ async function loadTeams(entry, hideUsed){
       const info = T.teams[t];
       const recStr = info.record?` <span class="dim">(${info.record})</span>`:"";
       const pools = (info.in_tx?"🎄":"")+(info.in_xmas?"🎁":"");
+      // best remaining spot: this team's highest win% across all shown weeks
+      let bestLeg = null, bestP = -1;
+      for (const w of weeks) {
+        const g = info.schedule[w.id];
+        if (g && g.p > bestP) { bestP = g.p; bestLeg = w.id; }
+      }
       const cells = weeks.map(w => {
         const g = info.schedule[w.id];
         if (!g) return `<td class="dim">—</td>`;
         const cls = g.p>=0.6?"cell-g":g.p>=0.5?"cell-a":"cell-r";
-        return `<td class="${cls}">${g.home?"vs":"@"} ${g.opp} <b>${Math.round(g.p*100)}%</b></td>`;
+        const star = w.id===bestLeg ? `<span class="best">★</span> ` : "";
+        return `<td class="${cls}">${star}${g.home?"vs":"@"} ${g.opp} <b>${Math.round(g.p*100)}%</b></td>`;
       }).join("");
       return `<tr class="${info.used?'rowused':''}"><th>${t}${pools}${recStr}</th>
         <td class="num">${info.ou.toFixed(1)}</td>${cells}</tr>`;
@@ -685,6 +697,20 @@ async function loadInjuries(){
       t.rows.slice(0,4).map(r=>`${r.position} ${r.name} (${r.status})`).join("; ")+`</p>`).join("");
   } catch(err){ el.innerHTML=`<div class="banner err">${err.message}</div>`; }
 }
+
+async function runVerify(){
+  const el = $("#ver"); el.innerHTML = `<p class="dim">checking final scores…</p>`;
+  try {
+    const V = await api("/api/verify", {leg: $("#ver-leg").value});
+    if (!V.results.length){ el.innerHTML = `<div class="banner info">No locked picks for this week — nothing to verify.</div>`; return; }
+    el.innerHTML = V.results.map(r => {
+      const cls = r.status==="SURVIVED" ? "ok" : r.status==="PENDING" ? "info" : "err";
+      return `<div class="banner ${cls}">Entry ${r.entry} · ${r.team} → <b>${r.status}</b>${r.score?` · ${r.score}`:""}</div>`;
+    }).join("") + `<p class="dim">${V.alive} entries alive</p>`;
+    await refresh();
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+
 async function runCheck(){
   const el=$("#chk"); el.innerHTML=`<p class="dim">running…</p>`;
   const C = await api("/api/check");

@@ -441,6 +441,30 @@ def injuries(severity: str = "high"):
     ]}
 
 
+class VerifyReq(BaseModel):
+    leg: str
+
+
+@app.post("/api/verify")
+def verify(body: VerifyReq):
+    """Record survived/lost from ESPN final scores for a leg (Rule 6a: tie=loss)."""
+    if body.leg not in ingest_lines.LEG_TO_ESPN_WEEK:
+        raise HTTPException(404, f"no ESPN week for {body.leg}")
+    state = state_mod.load_state()
+    try:
+        results, _ = ingest_results.verify_leg(state, body.leg)
+    except Exception as ex:
+        raise HTTPException(502, f"ESPN fetch failed: {ex}")
+    out = []
+    for e, team, status_str, info in results:
+        score = None
+        if info and info.get("home_score") is not None:
+            score = f"{info['away']} {info['away_score']} @ {info['home']} {info['home_score']}"
+        out.append({"entry": e, "team": team, "status": status_str, "score": score})
+    alive = sum(1 for ent in state["entries"].values() if ent["alive"])
+    return {"results": out, "alive": alive}
+
+
 @app.get("/api/teams")
 def teams(entry: Optional[str] = None):
     """Every team's remaining schedule with per-week win probabilities.
