@@ -149,6 +149,21 @@ def board(horizon: Optional[int] = None, min_prob: Optional[float] = None,
           endgame: Optional[bool] = None):
     d = _dials(horizon, min_prob, holiday_min_prob, future_value_weight, endgame)
     state = state_mod.load_state()
+
+    # Ratings stay current automatically: before every solve, fold in any
+    # finished-but-unprocessed games (normally 0-1 weeks -> 0-1 ESPN calls;
+    # fully-processed weeks are skipped without a network hit). A failed
+    # fetch never blocks the projection.
+    from . import elo_update
+    try:
+        applied = []
+        for wk in elo_update.pending_espn_weeks(state)[:3]:
+            applied += elo_update.sync_espn_week(state, 2026, wk)
+        if applied:
+            state_mod.save_state(state)
+    except Exception:
+        pass
+
     try:
         res, probs, meta = _solve(state, d)
     except Exception as ex:
@@ -180,6 +195,9 @@ def board(horizon: Optional[int] = None, min_prob: Optional[float] = None,
         "win_totals": {t: wt for t, (wt, _) in data.WIN_TOTALS.items()},
         "pools": {"TXWEEK": sorted(sched.TXWEEK_POOL),
                   "XMASWEEK": sorted(sched.XMASWEEK_POOL)},
+        "elo_adjustments": {t: round(v, 1)
+                            for t, v in state.get("elo_adjustments", {}).items()},
+        "elo_weeks_done": state.get("elo_weeks_done", []),
     }
 
 

@@ -135,8 +135,14 @@ def verify_leg(state, leg_id, year=2026):
     events_json = fetch_week(year, espn_week)
     outcomes = _outcomes_by_team(events_json)
 
+    # Ratings learn from every completed game in this week — regardless of
+    # whether any entry picked it. Import here to avoid a module cycle
+    # (elo_update imports _parse_event from this module).
+    from . import elo_update
+    elo_applied = elo_update.sync_espn_week(state, year, espn_week, events_json)
+
     results = []
-    changes_written = False
+    changes_written = bool(elo_applied)
     for e in sorted(state["entries"]):
         entry = state["entries"][e]
         team = entry["picks"].get(leg_id)

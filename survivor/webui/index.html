@@ -500,6 +500,11 @@ function renderView(){
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="adv-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
         <button class="sub" onclick="advanceWeek()">Set current week</button></div>
+      <h2>Team ratings — season movement</h2>
+      <p class="dim">Ratings update automatically from final scores (margin-of-victory Elo):
+        on every Verify run AND on every projection load, so what you see is always priced
+        on current form. Weeks processed: <b>${(D.elo_weeks_done||[]).length ? D.elo_weeks_done.join(", ") : "none yet — season hasn't started"}</b>.</p>
+      ${ratingsTable()}
       <h2>Elo nudge</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <select id="nudge-team">${Object.keys(D.win_totals).sort().map(t=>`<option>${t}</option>`).join("")}</select>
@@ -696,6 +701,20 @@ async function loadInjuries(){
       `<p style="margin:6px 0"><b>${t.team}</b> <span class="dim">(alert ${t.score})</span> — `+
       t.rows.slice(0,4).map(r=>`${r.position} ${r.name} (${r.status})`).join("; ")+`</p>`).join("");
   } catch(err){ el.innerHTML=`<div class="banner err">${err.message}</div>`; }
+}
+
+
+function ratingsTable(){
+  const adj = D.elo_adjustments || {};
+  const rows = Object.entries(adj).filter(([,v])=>Math.abs(v)>=0.5)
+    .sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,16);
+  if (!rows.length) return `<p class="dim">No rating movement yet — the table fills in as games finish.</p>`;
+  return `<table style="max-width:460px"><thead><tr><th>Team</th>
+    <th class="num">Season Δ (Elo)</th></tr></thead><tbody>` +
+    rows.map(([t,v])=>`<tr><td>${t}${rec(t)}</td>
+      <td class="num" style="color:${v>0?'var(--green)':'var(--red)'}">${v>0?"+":""}${v.toFixed(1)}</td></tr>`).join("") +
+    `</tbody></table>
+    <p class="dim">Cumulative: automatic results updates + your manual nudges.</p>`;
 }
 
 async function runVerify(){
