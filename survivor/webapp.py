@@ -79,9 +79,13 @@ def _loaded_legs():
     return [lid for lid in sched.LEG_ORDER if lid in sched.SCHEDULE]
 
 
-def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=12):
-    """Same ranking the Streamlit UI uses (kept in sync by the shared solver
-    constants); model pick always included."""
+def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=None):
+    """Every team available to this entry in this leg, ranked by win prob.
+
+    Below-floor teams are included and flagged (`below_floor`) rather than
+    hidden — the user can pin any team that plays this week; the flag lets
+    the UI dim them and the fit banner warn. top_n=None returns the full
+    slate (the planner's default)."""
     entry = state["entries"][entry_idx]
     used = set(entry["used_teams"])
     leg_probs = probs.get(leg_id, {})
@@ -89,13 +93,14 @@ def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=12):
         return []
     cands = []
     for team, p in leg_probs.items():
-        if p < floor or team in used:
+        if team in used:
             continue
         stacks = sorted(o for o in res if o != entry_idx
                         and res.get(o, {}).get(leg_id) == team)
         cands.append({
             "team": team,
             "win_prob": round(p, 4),
+            "below_floor": p < floor,
             "in_tx": team in sched.TXWEEK_POOL,
             "in_xmas": team in sched.XMASWEEK_POOL,
             "stacks_with": stacks,
@@ -104,12 +109,14 @@ def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=12):
             "fv": round(solver.future_value(team), 2),
         })
     cands.sort(key=lambda c: -c["win_prob"])
-    top = cands[:top_n]
-    if not any(c["is_rec"] for c in top):
-        rec = next((c for c in cands if c["is_rec"]), None)
-        if rec:
-            top.append(rec)
-    return top
+    if top_n is not None:
+        top = cands[:top_n]
+        if not any(c["is_rec"] for c in top):
+            rec = next((c for c in cands if c["is_rec"]), None)
+            if rec:
+                top.append(rec)
+        return top
+    return cands
 
 
 def _game_meta_json(leg_id):
@@ -198,6 +205,11 @@ def board(horizon: Optional[int] = None, min_prob: Optional[float] = None,
         "elo_adjustments": {t: round(v, 1)
                             for t, v in state.get("elo_adjustments", {}).items()},
         "elo_weeks_done": state.get("elo_weeks_done", []),
+        "power": {
+            "fetched": (state.get("power_rankings") or {}).get("fetched"),
+            "weight": (state.get("power_rankings") or {}).get("weight", 0.35),
+            "count": len((state.get("power_rankings") or {}).get("fpi", {})),
+        },
     }
 
 
@@ -227,10 +239,16 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
     # winner. A team's `style` therefore answers: "which strategy would take
     # this pick?" — possibly several, possibly none. FV term is off on
     # holiday legs, matching the solver.
-    if alternatives:
+    # Styles are classified among ABOVE-floor teams only — "leans contrarian"
+    # on a 25% underdog would be misleading (contrarian fades favorites, it
+    # doesn't court elimination). Below-floor teams carry no style.
+    styleable = [a for a in alternatives if not a["below_floor"]]
+    for a in alternatives:
+        a["style"], a["style_strong"] = [], []
+    if styleable:
         is_holiday = leg in holiday
         fvw = d["future_value_weight"]
-        p_max = max(a["win_prob"] for a in alternatives)
+        p_max = max(a["win_prob"] for a in styleable)
 
         def _style_score(bucket, a):
             cw = solver.DEFAULT_CONTRARIAN_BY_BUCKET[bucket]
@@ -247,10 +265,10 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
         buckets = ("chalk", "contrarian", "conservation")
         ranks = {}  # team -> {bucket: rank (1 = best)}
         for b in buckets:
-            ordered = sorted(alternatives, key=lambda a: -_style_score(b, a))
+            ordered = sorted(styleable, key=lambda a: -_style_score(b, a))
             for i, a in enumerate(ordered):
                 ranks.setdefault(a["team"], {})[b] = i + 1
-        for a in alternatives:
+        for a in styleable:
             r = ranks[a["team"]]
             best_rank = min(r.values())
             a["style"] = [b for b in buckets if r[b] == best_rank]
@@ -261,6 +279,7 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
         "locked_team": ent["picks"].get(leg),
         "model_pick": res.get(entry, {}).get(leg),
         "week_bucket": state_mod.effective_bucket(ent, leg),
+        "floor": floor,
         "alternatives": alternatives,
         "game_meta": _game_meta_json(leg),
     }
@@ -495,6 +514,28 @@ def injuries(severity: str = "high"):
          "rows": ingest_injuries.sort_by_priority(by_team[t])}
         for t in teams
     ]}
+
+
+class PowerReq(BaseModel):
+    weight: Optional[float] = None   # blend weight 0..0.8; None keeps current
+
+
+@app.post("/api/power")
+def power(body: PowerReq):
+    """Ingest ESPN FPI into state (and optionally set the blend weight)."""
+    from . import ingest_power
+    state = state_mod.load_state()
+    w = body.weight
+    if w is not None:
+        w = max(0.0, min(0.8, float(w)))
+    try:
+        block = ingest_power.ingest_power(state, weight=w)
+    except Exception as ex:
+        raise HTTPException(502, f"FPI fetch failed: {ex}")
+    state_mod.save_state(state)
+    top = sorted(block["fpi"].items(), key=lambda kv: -kv[1])[:5]
+    return {"ok": True, "count": len(block["fpi"]), "fetched": block["fetched"],
+            "weight": block["weight"], "top": top}
 
 
 class VerifyReq(BaseModel):

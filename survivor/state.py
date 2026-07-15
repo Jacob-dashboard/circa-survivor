@@ -63,10 +63,28 @@ def save_state(state):
 
 
 def current_elo(state):
-    """BASE_ELO with `elo_adjustments` deltas added on top."""
+    """The live team rating every projection prices from.
+
+    Stack: BASE_ELO (June win-total anchor) + elo_adjustments (automatic
+    results-Elo + manual nudges), optionally blended with ESPN FPI when
+    power rankings have been ingested:
+
+        final = (1 - w) * ours + w * (1500 + FPI_points * 25)
+
+    w lives in state["power_rankings"]["weight"] so the blend follows the
+    state file to every surface (solver, CLI, both UIs) automatically.
+    """
     elo = dict(data.BASE_ELO)
     for team, delta in state.get("elo_adjustments", {}).items():
         elo[team] = elo.get(team, 1500.0) + delta
+
+    pr = state.get("power_rankings") or {}
+    fpi = pr.get("fpi") or {}
+    w = pr.get("weight", 0.35)
+    if fpi and w > 0:
+        for team in elo:
+            if team in fpi:
+                elo[team] = (1 - w) * elo[team] + w * (1500.0 + fpi[team] * 25.0)
     return elo
 
 

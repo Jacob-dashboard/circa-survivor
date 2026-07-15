@@ -500,6 +500,20 @@ function renderView(){
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="adv-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
         <button class="sub" onclick="advanceWeek()">Set current week</button></div>
+      <h2>Power rankings — ESPN FPI blend</h2>
+      <p class="dim">Live team ratings from ESPN's Football Power Index, blended into every
+        projection: <b>final = (1−w) × our rating + w × FPI</b>. Our rating = June anchor +
+        results-Elo + your nudges. ${D.power && D.power.count ?
+        `Loaded: <b>${D.power.count} teams</b> (updated ${(D.power.fetched||"?").slice(0,10)}) · blend weight <b>${D.power.weight}</b>` :
+        `<b>Not loaded yet</b> — projections run on our rating alone until you ingest.`}</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="go" onclick="ingestPower()">Ingest FPI now</button>
+        <label class="dim">blend weight
+          <input type="number" id="fpi-w" min="0" max="0.8" step="0.05"
+            value="${D.power?D.power.weight:0.35}" style="width:80px;margin-left:6px"></label>
+        <span class="dim">0 = ignore FPI · 0.35 default · refresh weekly in season</span>
+      </div>
+      <div id="pwr"></div>
       <h2>Team ratings — season movement</h2>
       <p class="dim">Ratings update automatically from final scores (margin-of-victory Elo):
         on every Verify run AND on every projection load, so what you see is always priced
@@ -572,16 +586,25 @@ async function loadPlanner(e, leg){
       return;
     }
     if (!P.alternatives.length){
-      el.innerHTML = `<div class="banner info">No teams above the floor for ${leg}. Lower the weekly floor in Tools.</div>`;
+      el.innerHTML = `<div class="banner info">No teams available for ${leg}.</div>`;
       return;
     }
-    el.innerHTML = `<table><thead><tr><th>Team</th><th class="num">Win%</th><th class="num">O/U</th>
+    const above = P.alternatives.filter(a=>!a.below_floor);
+    const below = P.alternatives.filter(a=>a.below_floor);
+    const showAll = localStorage.getItem(`showall_${e}`) === "1";
+    const visible = showAll ? P.alternatives : above;
+    el.innerHTML = `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <span class="dim">${above.length} team${above.length!==1?"s":""} above your ${Math.round(P.floor*100)}% floor · ${below.length} below</span>
+      <label class="ck"><input type="checkbox" ${showAll?"checked":""}
+        onchange="localStorage.setItem('showall_${e}', this.checked?'1':'0');loadPlanner('${e}','${leg}')">
+        show all ${P.alternatives.length} teams playing this week</label></div>
+    <table><thead><tr><th>Team</th><th class="num">Win%</th><th class="num">O/U</th>
       <th>Style</th><th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
-      P.alternatives.map(a => `<tr class="${a.is_rec?'rec':''} clickable" onclick="runWhatIf('${e}','${leg}','${a.team}')">
+      visible.map(a => `<tr class="${a.is_rec?'rec':''} clickable" style="${a.below_floor?'opacity:.5':''}" onclick="runWhatIf('${e}','${leg}','${a.team}')">
         <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
         <td class="num">${pct(a.win_prob)}</td>
         <td class="num">${a.ou!=null?a.ou.toFixed(1):"—"}</td>
-        <td>${styleBadges(a.style, a.style_strong)}</td>
+        <td>${a.below_floor?`<span class="dim">below floor</span>`:styleBadges(a.style, a.style_strong)}</td>
         <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
         <td>${a.stacks_with.join(",")||"—"}</td>
         <td>${a.fv>=0.8?"🛑 hold":a.fv>=0.35?"🤔 costly":"✅ burn"}</td>
@@ -609,6 +632,10 @@ function strategyFit(e, leg, team){
   if (!a) return "";
   const style = a.style||[], strong = a.style_strong||[];
   const wb = P.week_bucket;
+  if (a.below_floor)
+    return `<div class="banner err">⚠ <b>${team}</b> is a ${pct(a.win_prob)} pick — below your
+      ${Math.round(P.floor*100)}% weekly floor. No strategy would choose it; the model treats this
+      as an elimination-risk play. You can still pin it if you have information the model doesn't.</div>`;
   // Describe THE TEAM first, in its own right
   const teamTxt = strong.length
     ? `<b>${team}</b> IS the <b>${strong.map(b=>BSHORT[b]).join(" + ")}</b> pick this week`
@@ -766,6 +793,18 @@ function ratingsTable(){
       <td class="num" style="color:${v>0?'var(--green)':'var(--red)'}">${v>0?"+":""}${v.toFixed(1)}</td></tr>`).join("") +
     `</tbody></table>
     <p class="dim">Cumulative: automatic results updates + your manual nudges.</p>`;
+}
+
+
+async function ingestPower(){
+  const el = $("#pwr"); el.innerHTML = `<p class="dim">fetching FPI…</p>`;
+  try {
+    const w = parseFloat($("#fpi-w").value);
+    const r = await api("/api/power", {weight: isNaN(w)?null:w});
+    el.innerHTML = `<div class="banner ok">✓ ${r.count} teams (updated ${(r.fetched||"?").slice(0,10)}),
+      blend weight ${r.weight}. Top: ${r.top.map(([t,v])=>`${t} ${v>0?"+":""}${v}`).join(" · ")}</div>`;
+    toast("FPI blended into projections"); await refresh();
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
 
 async function runVerify(){
