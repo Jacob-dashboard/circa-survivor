@@ -100,7 +100,7 @@
         "W3": "contrarian",
         "W12": "chalk",
         "W9": "conservation",
-        "W2": "conservation",
+        "W2": "contrarian",
         "W4": "contrarian"
       }
     },
@@ -109,7 +109,9 @@
       "used_teams": [],
       "picks": {},
       "bucket": "contrarian",
-      "leg_buckets": {}
+      "leg_buckets": {
+        "W1": "chalk"
+      }
     }
   },
   "notes": {}

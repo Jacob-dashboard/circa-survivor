@@ -581,36 +581,61 @@ async function loadPlanner(e, leg){
         <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
         <td class="num">${pct(a.win_prob)}</td>
         <td class="num">${a.ou!=null?a.ou.toFixed(1):"—"}</td>
-        <td>${styleBadges(a.style)}</td>
+        <td>${styleBadges(a.style, a.style_strong)}</td>
         <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
         <td>${a.stacks_with.join(",")||"—"}</td>
         <td>${a.fv>=0.8?"🛑 hold":a.fv>=0.35?"🤔 costly":"✅ burn"}</td>
         <td class="dim">explore →</td></tr>`).join("") + `</tbody></table>
       <p class="dim">★ model pick · Style = which strategy would take this pick this week ·
       FV = season value of NOT burning the team now · click a row to see the ripple</p>
+      ${routingNote(P, leg)}
       <div id="whatif"></div>`;
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
 
-function styleBadges(style){
-  if (!style || !style.length) return `<span class="dim">—</span>`;
-  return style.map(b=>`<span style="color:${BC[b]};font-weight:700">${BSHORT[b]}</span>`).join(" ");
+function styleBadges(style, strong){
+  strong = strong || [];
+  const parts = [];
+  for (const b of (strong.length ? strong : []))
+    parts.push(`<span style="background:${BC[b]};color:#12161f;font-weight:700;padding:2px 8px;border-radius:999px;font-size:.66rem">${BSHORT[b]}</span>`);
+  for (const b of (style||[]).filter(b=>!strong.includes(b)))
+    parts.push(`<span style="color:${BC[b]};font-weight:600;font-size:.7rem">leans ${BSHORT[b]}</span>`);
+  return parts.length ? parts.join(" ") : `<span class="dim">—</span>`;
 }
 function strategyFit(e, leg, team){
   const P = lastPlan[`${e}|${leg}`];
   if (!P) return "";
   const a = (P.alternatives||[]).find(x=>x.team===team);
-  const style = a ? (a.style||[]) : [];
+  if (!a) return "";
+  const style = a.style||[], strong = a.style_strong||[];
   const wb = P.week_bucket;
-  const styleTxt = style.length ? style.map(b=>BSHORT[b]).join(" + ") : "none of the three styles";
-  if (wb && style.includes(wb)) {
-    return `<div class="banner ok">✓ Fits your selected strategy for ${leg}: <b>${BSHORT[wb]}</b> would take ${team} this week.</div>`;
-  }
-  if (wb) {
-    const wbPick = (P.alternatives||[]).find(x=>(x.style||[]).includes(wb));
-    return `<div class="banner info">Your selected strategy for ${leg} is <b style="color:${BC[wb]}">${BSHORT[wb]}</b>${wbPick?` (it would take <b>${wbPick.team}</b>)`:""} — ${team} reads as <b>${styleTxt}</b>. Not wrong, just a different style than the week is set to.</div>`;
-  }
-  return `<div class="banner info">No strategy set for ${leg} — ${team} reads as <b>${styleTxt}</b>.</div>`;
+  // Describe THE TEAM first, in its own right
+  const teamTxt = strong.length
+    ? `<b>${team}</b> IS the <b>${strong.map(b=>BSHORT[b]).join(" + ")}</b> pick this week`
+    : `<b>${team}</b> leans <b>${style.map(b=>BSHORT[b]).join(" + ")}</b>`;
+  if (!wb) return `<div class="banner info">${teamTxt}. (No strategy is set for ${leg}.)</div>`;
+  if (strong.includes(wb))
+    return `<div class="banner ok">✓ ${teamTxt} — exactly what your selected strategy (${BSHORT[wb]}) would take.</div>`;
+  if (style.includes(wb))
+    return `<div class="banner ok">✓ ${teamTxt} — consistent with your selected strategy for ${leg} (${BSHORT[wb]}).</div>`;
+  const wbPick = (P.alternatives||[]).find(x=>(x.style_strong||[]).includes(wb));
+  return `<div class="banner info">${teamTxt} — a different style than this week's setting
+    (<b style="color:${BC[wb]}">${BSHORT[wb]}</b>${wbPick?`, whose pure this-week pick is <b>${wbPick.team}</b>`:""}).
+    Not wrong, just a different character of risk.</div>`;
+}
+function routingNote(P, leg){
+  // When the model's ★ pick is NOT the week-strategy's pure this-week choice,
+  // say why: season routing (no-reuse, holiday pools, decorrelation).
+  const wb = P.week_bucket;
+  const mp = (P.alternatives||[]).find(x=>x.team===P.model_pick);
+  if (!mp) return "";
+  const strong = mp.style_strong||[];
+  if (!wb || strong.includes(wb)) return "";
+  const wbPick = (P.alternatives||[]).find(x=>(x.style_strong||[]).includes(wb));
+  return `<p class="dim" style="margin-top:4px">Note: the ★ model pick (${P.model_pick}) serves the
+    <b>season plan</b> — saving higher-future-value teams for later weeks and staying decorrelated —
+    rather than ${BSHORT[wb]}'s pure this-week choice${wbPick?` (<b>${wbPick.team}</b>)`:""}.
+    Set Projection to “This week” to see pure strategy behavior with no season routing.</p>`;
 }
 
 async function runWhatIf(e, leg, team){

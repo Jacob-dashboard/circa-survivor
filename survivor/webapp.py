@@ -240,11 +240,21 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
                 s -= fvw * fm * a["fv"]
             return s
 
+        # Every team gets a style, not just the three argmax winners:
+        #   style_strong = buckets where the team IS that strategy's pick
+        #   style        = nearest style(s) — buckets under which the team
+        #                  ranks best relative to the other candidates
+        buckets = ("chalk", "contrarian", "conservation")
+        ranks = {}  # team -> {bucket: rank (1 = best)}
+        for b in buckets:
+            ordered = sorted(alternatives, key=lambda a: -_style_score(b, a))
+            for i, a in enumerate(ordered):
+                ranks.setdefault(a["team"], {})[b] = i + 1
         for a in alternatives:
-            a["style"] = []
-        for b in ("chalk", "contrarian", "conservation"):
-            best = max(alternatives, key=lambda a: _style_score(b, a))
-            best["style"].append(b)
+            r = ranks[a["team"]]
+            best_rank = min(r.values())
+            a["style"] = [b for b in buckets if r[b] == best_rank]
+            a["style_strong"] = [b for b in buckets if r[b] == 1]
 
     return {
         "locked": leg in ent["picks"],
