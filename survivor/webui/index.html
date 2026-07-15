@@ -595,9 +595,9 @@ async function loadPlanner(e, leg){
     const visible = showAll ? P.alternatives : above;
     el.innerHTML = `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <span class="dim">${above.length} team${above.length!==1?"s":""} above your ${Math.round(P.floor*100)}% floor · ${below.length} below</span>
-      <label class="ck"><input type="checkbox" ${showAll?"checked":""}
+      <label class="ck" style="color:var(--amber);font-weight:600"><input type="checkbox" ${showAll?"checked":""}
         onchange="localStorage.setItem('showall_${e}', this.checked?'1':'0');loadPlanner('${e}','${leg}')">
-        show all ${P.alternatives.length} teams playing this week</label></div>
+        show all ${P.alternatives.length} teams — every team playing this week is selectable, floor or not</label></div>
     <table><thead><tr><th>Team</th><th class="num">Win%</th><th class="num">O/U</th>
       <th>Style</th><th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
       visible.map(a => `<tr class="${a.is_rec?'rec':''} clickable" style="${a.below_floor?'opacity:.5':''}" onclick="runWhatIf('${e}','${leg}','${a.team}')">
@@ -634,8 +634,9 @@ function strategyFit(e, leg, team){
   const wb = P.week_bucket;
   if (a.below_floor)
     return `<div class="banner err">⚠ <b>${team}</b> is a ${pct(a.win_prob)} pick — below your
-      ${Math.round(P.floor*100)}% weekly floor. No strategy would choose it; the model treats this
-      as an elimination-risk play. You can still pin it if you have information the model doesn't.</div>`;
+      ${Math.round(P.floor*100)}% weekly floor, so the model flags it as elimination-risk and no
+      strategy would recommend it. <b>It is fully selectable</b> — confirm and pin below, and the
+      season plan will re-route around your call. Your pick, your information.</div>`;
   // Describe THE TEAM first, in its own right
   const teamTxt = strong.length
     ? `<b>${team}</b> IS the <b>${strong.map(b=>BSHORT[b]).join(" + ")}</b> pick this week`

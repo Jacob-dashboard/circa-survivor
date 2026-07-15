@@ -52,13 +52,13 @@
           "market_weight": 0.85
         },
         "HOU|BUF": {
-          "home": -105,
-          "away": -115,
+          "home": -108,
+          "away": -112,
           "market_weight": 0.85
         },
         "LV|MIA": {
-          "home": -175,
-          "away": 145,
+          "home": -170,
+          "away": 142,
           "market_weight": 0.85
         },
         "MIN|GB": {
@@ -82,8 +82,8 @@
           "market_weight": 0.85
         },
         "KC|DEN": {
-          "home": -142,
-          "away": 120,
+          "home": -148,
+          "away": 124,
           "market_weight": 0.85
         }
       }
@@ -98,7 +98,8 @@
       "leg_buckets": {
         "W12": "chalk",
         "W9": "conservation",
-        "W1": "contrarian"
+        "W1": "contrarian",
+        "W2": "chalk"
       }
     },
     "1": {
@@ -108,7 +109,8 @@
       "bucket": "contrarian",
       "leg_buckets": {
         "W1": "contrarian",
-        "W2": "conservation"
+        "W2": "chalk",
+        "W3": "contrarian"
       }
     }
   },
