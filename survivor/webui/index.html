@@ -559,10 +559,12 @@ function openPlanner(e, leg){
   if (route!==`entry-${e}`) go(`entry-${e}`);
   else { const s=$("#plan-leg"); if (s) s.value=leg; loadPlanner(e, leg); }
 }
+let lastPlan = {};
 async function loadPlanner(e, leg){
   const el = $("#planner"); el.innerHTML = `<p class="dim">loading ${leg}…</p>`;
   try {
     const P = await api(`/api/plan?entry=${e}&leg=${leg}&${qs()}`);
+    lastPlan[`${e}|${leg}`] = P;
     if (P.locked){
       el.innerHTML = `<div class="banner info">${leg} is locked on <b>${P.locked_team}</b>.</div>
         <label class="ck"><input type="checkbox" id="unlock-ok"> confirm unlock</label>
@@ -574,19 +576,43 @@ async function loadPlanner(e, leg){
       return;
     }
     el.innerHTML = `<table><thead><tr><th>Team</th><th class="num">Win%</th><th class="num">O/U</th>
-      <th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
+      <th>Style</th><th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
       P.alternatives.map(a => `<tr class="${a.is_rec?'rec':''} clickable" onclick="runWhatIf('${e}','${leg}','${a.team}')">
         <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
         <td class="num">${pct(a.win_prob)}</td>
         <td class="num">${a.ou!=null?a.ou.toFixed(1):"—"}</td>
+        <td>${styleBadges(a.style)}</td>
         <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
         <td>${a.stacks_with.join(",")||"—"}</td>
         <td>${a.fv>=0.8?"🛑 hold":a.fv>=0.35?"🤔 costly":"✅ burn"}</td>
         <td class="dim">explore →</td></tr>`).join("") + `</tbody></table>
-      <p class="dim">★ model pick · FV = season value of NOT burning the team now · click a row to see the ripple</p>
+      <p class="dim">★ model pick · Style = which strategy would take this pick this week ·
+      FV = season value of NOT burning the team now · click a row to see the ripple</p>
       <div id="whatif"></div>`;
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
+
+function styleBadges(style){
+  if (!style || !style.length) return `<span class="dim">—</span>`;
+  return style.map(b=>`<span style="color:${BC[b]};font-weight:700">${BSHORT[b]}</span>`).join(" ");
+}
+function strategyFit(e, leg, team){
+  const P = lastPlan[`${e}|${leg}`];
+  if (!P) return "";
+  const a = (P.alternatives||[]).find(x=>x.team===team);
+  const style = a ? (a.style||[]) : [];
+  const wb = P.week_bucket;
+  const styleTxt = style.length ? style.map(b=>BSHORT[b]).join(" + ") : "none of the three styles";
+  if (wb && style.includes(wb)) {
+    return `<div class="banner ok">✓ Fits your selected strategy for ${leg}: <b>${BSHORT[wb]}</b> would take ${team} this week.</div>`;
+  }
+  if (wb) {
+    const wbPick = (P.alternatives||[]).find(x=>(x.style||[]).includes(wb));
+    return `<div class="banner info">Your selected strategy for ${leg} is <b style="color:${BC[wb]}">${BSHORT[wb]}</b>${wbPick?` (it would take <b>${wbPick.team}</b>)`:""} — ${team} reads as <b>${styleTxt}</b>. Not wrong, just a different style than the week is set to.</div>`;
+  }
+  return `<div class="banner info">No strategy set for ${leg} — ${team} reads as <b>${styleTxt}</b>.</div>`;
+}
+
 async function runWhatIf(e, leg, team){
   const el = $("#whatif"); el.innerHTML = `<p class="dim">re-solving season around ${team}…</p>`;
   try {
@@ -595,7 +621,7 @@ async function runWhatIf(e, leg, team){
       el.innerHTML = `<div class="banner err">Solver: ${W.status}. This pick likely breaks a hard constraint
         (e.g. exhausts a holiday pool). Strong signal NOT to take it.</div>`; return; }
     const d = (W.p_choice!=null&&W.p_model!=null)?W.p_choice-W.p_model:null;
-    el.innerHTML = `
+    el.innerHTML = strategyFit(e, leg, team) + `
       <div class="metricrow">
         <div class="metric"><div class="lbl">MODEL · ${W.model_pick||"—"}</div><div class="val">${pct(W.p_model)}</div></div>
         <div class="metric"><div class="lbl">YOURS · ${team}</div><div class="val">${pct(W.p_choice)}

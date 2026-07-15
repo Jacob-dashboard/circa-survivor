@@ -96,10 +96,12 @@
       "picks": {},
       "bucket": null,
       "leg_buckets": {
-        "W1": "conservation",
-        "W3": "conservation",
+        "W1": "contrarian",
+        "W3": "contrarian",
         "W12": "chalk",
-        "W9": "conservation"
+        "W9": "conservation",
+        "W2": "conservation",
+        "W4": "contrarian"
       }
     },
     "1": {

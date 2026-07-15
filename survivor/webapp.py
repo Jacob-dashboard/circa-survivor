@@ -219,11 +219,39 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
     holiday = set(meta.get("holiday", []))
     floor = d["holiday_min_prob"] if leg in holiday else d["min_prob"]
     ent = state["entries"][entry]
+    alternatives = _rank_alternatives(state, res, probs, leg, entry, floor)
+
+    # ---- Pick style classifier -------------------------------------------
+    # For each strategy bucket, score every available team with that bucket's
+    # OWN single-week objective (same constants the solver uses) and tag the
+    # winner. A team's `style` therefore answers: "which strategy would take
+    # this pick?" — possibly several, possibly none. FV term is off on
+    # holiday legs, matching the solver.
+    if alternatives:
+        is_holiday = leg in holiday
+        fvw = d["future_value_weight"]
+        p_max = max(a["win_prob"] for a in alternatives)
+
+        def _style_score(bucket, a):
+            cw = solver.DEFAULT_CONTRARIAN_BY_BUCKET[bucket]
+            fm = solver.DEFAULT_FV_MULT_BY_BUCKET[bucket]
+            s = math.log(a["win_prob"]) - cw * (a["win_prob"] / p_max)
+            if not is_holiday:
+                s -= fvw * fm * a["fv"]
+            return s
+
+        for a in alternatives:
+            a["style"] = []
+        for b in ("chalk", "contrarian", "conservation"):
+            best = max(alternatives, key=lambda a: _style_score(b, a))
+            best["style"].append(b)
+
     return {
         "locked": leg in ent["picks"],
         "locked_team": ent["picks"].get(leg),
         "model_pick": res.get(entry, {}).get(leg),
-        "alternatives": _rank_alternatives(state, res, probs, leg, entry, floor),
+        "week_bucket": state_mod.effective_bucket(ent, leg),
+        "alternatives": alternatives,
         "game_meta": _game_meta_json(leg),
     }
 
