@@ -97,7 +97,8 @@
       "bucket": null,
       "leg_buckets": {
         "W12": "chalk",
-        "W9": "conservation"
+        "W9": "conservation",
+        "W1": "contrarian"
       }
     },
     "1": {
@@ -106,7 +107,8 @@
       "picks": {},
       "bucket": "contrarian",
       "leg_buckets": {
-        "W1": "contrarian"
+        "W1": "contrarian",
+        "W2": "conservation"
       }
     }
   },

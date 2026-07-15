@@ -646,10 +646,34 @@ function strategyFit(e, leg, team){
   if (style.includes(wb))
     return `<div class="banner ok">✓ ${teamTxt} — consistent with your selected strategy for ${leg} (${BSHORT[wb]}).</div>`;
   const wbPick = (P.alternatives||[]).find(x=>(x.style_strong||[]).includes(wb));
+  const dep = wbPick ? deployNote(routeEntry(), wbPick.team, leg) : "";
   return `<div class="banner info">${teamTxt} — a different style than this week's setting
-    (<b style="color:${BC[wb]}">${BSHORT[wb]}</b>${wbPick?`, whose pure this-week pick is <b>${wbPick.team}</b>`:""}).
+    (<b style="color:${BC[wb]}">${BSHORT[wb]}</b>${wbPick?`, whose pure this-week pick is <b>${wbPick.team}</b>${dep}`:""}).
     Not wrong, just a different character of risk.</div>`;
 }
+
+function plannedAt(e, team, exceptLeg){
+  const spots = [];
+  for (const [lid, t] of Object.entries(D.plan[e]||{}))
+    if (t===team && lid!==exceptLeg) spots.push(lid);
+  for (const [lid, t] of Object.entries(D.entries[e].picks||{}))
+    if (t===team && lid!==exceptLeg && !spots.includes(lid)) spots.push(`${lid} 🔒`);
+  // other entries too (decorrelation pressure)
+  const others = [];
+  for (const oe of Object.keys(D.entries)) {
+    if (oe===e) continue;
+    for (const [lid, t] of Object.entries(D.plan[oe]||{}))
+      if (t===team) others.push(`E${oe} ${lid}`);
+  }
+  return {mine: spots, others};
+}
+function deployNote(e, team, leg){
+  const w = plannedAt(e, team, leg);
+  if (w.mine.length) return ` — but ${team} is already planned for <b>${w.mine.join(", ")}</b>; moving it here reshuffles the season plan`;
+  if (w.others.length) return ` — note ${team} is planned on ${w.others.join(", ")} (decorrelation pressure)`;
+  return "";
+}
+
 function routingNote(P, leg){
   // When the model's ★ pick is NOT the week-strategy's pure this-week choice,
   // say why: season routing (no-reuse, holiday pools, decorrelation).
@@ -659,10 +683,13 @@ function routingNote(P, leg){
   const strong = mp.style_strong||[];
   if (!wb || strong.includes(wb)) return "";
   const wbPick = (P.alternatives||[]).find(x=>(x.style_strong||[]).includes(wb));
+  const dep = wbPick ? deployNote(routeEntry(), wbPick.team, leg) : "";
   return `<p class="dim" style="margin-top:4px">Note: the ★ model pick (${P.model_pick}) serves the
-    <b>season plan</b> — saving higher-future-value teams for later weeks and staying decorrelated —
-    rather than ${BSHORT[wb]}'s pure this-week choice${wbPick?` (<b>${wbPick.team}</b>)`:""}.
-    Set Projection to “This week” to see pure strategy behavior with no season routing.</p>`;
+    <b>season plan</b> — rather than ${BSHORT[wb]}'s pure this-week choice${wbPick?` (<b>${wbPick.team}</b>${dep})`:""}.
+    Changing this week's strategy only re-picks when it beats the whole-season cost of the swap.
+    Set Projection to “This week” for pure strategy behavior with no season routing.</p>`;
+}
+function routeEntry(){ return route.startsWith("entry-") ? route.slice(6) : Object.keys(D.entries).sort()[0]; 
 }
 
 async function runWhatIf(e, leg, team){
