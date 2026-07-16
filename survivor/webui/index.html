@@ -575,6 +575,20 @@ function openPlanner(e, leg){
   else { const s=$("#plan-leg"); if (s) s.value=leg; loadPlanner(e, leg); }
 }
 let lastPlan = {};
+
+function matchupCell(team, gm){
+  const g = gameFor(gm, team);
+  if (!g) return `<span class="dim">—</span>`;
+  const isA = team===g.away, opp = isA?g.home:g.away;
+  let sp = "";
+  if (g.m.spread_home!=null){
+    const s = isA ? -g.m.spread_home : g.m.spread_home;
+    sp = Math.abs(s)<0.05 ? `<span class="dim"> PK</span>`
+         : `<span class="dim"> ${s>0?"+":""}${s.toFixed(1)}</span>`;
+  }
+  return `${isA?"@":"vs"} ${opp}${sp}`;
+}
+
 async function loadPlanner(e, leg){
   const el = $("#planner"); el.innerHTML = `<p class="dim">loading ${leg}…</p>`;
   try {
@@ -599,17 +613,18 @@ async function loadPlanner(e, leg){
       <label class="ck" style="color:var(--amber);font-weight:600"><input type="checkbox" ${showAll?"checked":""}
         onchange="localStorage.setItem('showall_${e}', this.checked?'1':'0');loadPlanner('${e}','${leg}')">
         show all ${P.alternatives.length} teams — every team playing this week is selectable, floor or not</label></div>
-    <table><thead><tr><th>Team</th><th class="num">Win%</th><th class="num">O/U</th>
+    <div style="overflow-x:auto"><table><thead><tr><th>Team</th><th>Game</th><th class="num">Win%</th><th class="num">O/U</th>
       <th>Style</th><th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
       visible.map(a => `<tr class="${a.is_rec?'rec':''} clickable" style="${a.below_floor?'opacity:.5':''}" onclick="runWhatIf('${e}','${leg}','${a.team}')">
         <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
+        <td style="white-space:nowrap">${matchupCell(a.team, P.game_meta)}</td>
         <td class="num">${pct(a.win_prob)}</td>
         <td class="num">${a.ou!=null?a.ou.toFixed(1):"—"}</td>
         <td>${a.below_floor?`<span class="dim">below floor</span>`:styleBadges(a.style, a.style_strong)}</td>
         <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
         <td>${a.stacks_with.join(",")||"—"}</td>
         <td>${a.fv>=0.8?"🛑 hold":a.fv>=0.35?"🤔 costly":"✅ burn"}</td>
-        <td class="dim">explore →</td></tr>`).join("") + `</tbody></table>
+        <td class="dim">explore →</td></tr>`).join("") + `</tbody></table></div>
       <p class="dim">★ model pick · Style = which strategy would take this pick this week ·
       FV = season value of NOT burning the team now · click a row to see the ripple</p>
       ${routingNote(P, leg)}
