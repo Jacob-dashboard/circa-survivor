@@ -234,6 +234,7 @@ input[type=number], input[type=text] { background:var(--panel2); color:var(--tex
 
 <script>
 const $ = (s, el=document) => el.querySelector(s);
+const EL = e => Number(e) + 1;  // display label: state id "0"/"1" shown as Entry 1/2
 const BUCKETS = ["chalk","contrarian","conservation"];
 const BC = {chalk:"var(--green)", contrarian:"var(--red)", conservation:"var(--teal)", neutral:"var(--dim)"};
 const BSHORT = {chalk:"Chalk", contrarian:"Contra", conservation:"Conserve", neutral:"Neutral"};
@@ -282,7 +283,7 @@ function renderHeader(){
 }
 function renderNav(){
   const ids = Object.keys(D.entries).sort();
-  const tabs = [["board","Board"], ...ids.map(e=>[`entry-${e}`,`Entry ${e}`]),
+  const tabs = [["board","Board"], ...ids.map(e=>[`entry-${e}`,`Entry ${EL(e)}`]),
                 ["teams","Teams"], ["market","Market"], ["tools","Tools"]];
   $("#nav").innerHTML = tabs.map(([r,l]) =>
     `<button class="${route===r?'on':''}" onclick="go('${r}')">${l}</button>`).join("");
@@ -424,7 +425,7 @@ function renderView(){
         const ent = D.entries[e];
         return `<div class="ticket" style="border-left-color:${BC[ent.bucket]||'var(--amber)'}">
           <div class="t-head"><span class="st" style="background:${ent.alive?'var(--green)':'var(--red)'}"></span>
-            <span class="nm">Entry ${e}</span>${bucketSelect(e)}</div>
+            <span class="nm">Entry ${EL(e)}</span>${bucketSelect(e)}</div>
           <div class="t-body">
             ${matchup(e)}
             <h2 style="margin-top:4px">Season</h2>
@@ -443,7 +444,7 @@ function renderView(){
     const e = route.slice(6);
     const leg = planSel[e] || D.current_leg;
     m.innerHTML = `
-      <h2>Entry ${e} · Season</h2>${rail(e)}
+      <h2>Entry ${EL(e)} · Season</h2>${rail(e)}
       <h2>Strategy by week</h2>${stratStrip(e)}
       <h2>This week</h2>${matchup(e)}
       <h2>Holiday pools</h2>${holidayPanels(e)}
@@ -464,7 +465,7 @@ function renderView(){
     m.innerHTML = `<h2>Team schedules — rest of season</h2>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <select id="tm-entry" onchange="localStorage.setItem('teams_entry',this.value);renderView()">
-          ${ids2.map(e=>`<option value="${e}" ${e===sel?"selected":""}>Availability for Entry ${e}</option>`).join("")}
+          ${ids2.map(e=>`<option value="${e}" ${e===sel?"selected":""}>Availability for Entry ${EL(e)}</option>`).join("")}
         </select>
         <label class="ck"><input type="checkbox" ${hideUsed?"checked":""}
           onchange="localStorage.setItem('teams_hideused', this.checked?'1':'0');renderView()"> hide used teams</label>
@@ -664,7 +665,7 @@ function plannedAt(e, team, exceptLeg){
   for (const oe of Object.keys(D.entries)) {
     if (oe===e) continue;
     for (const [lid, t] of Object.entries(D.plan[oe]||{}))
-      if (t===team) others.push(`E${oe} ${lid}`);
+      if (t===team) others.push(`E${EL(oe)} ${lid}`);
   }
   return {mine: spots, others};
 }
@@ -707,7 +708,7 @@ async function runWhatIf(e, leg, team){
         <div class="metric"><div class="lbl">YOURS · ${team}</div><div class="val">${pct(W.p_choice)}
           ${d!=null?`<span class="${d>=0?'up':'dn'}">${d>=0?"+":""}${(d*100).toFixed(1)}%</span>`:""}</div></div></div>
       ${W.ripple.length?`<div class="banner info">Portfolio ripple: `+
-        W.ripple.map(r=>`E${r.entry} ${r.leg}: ${r.before}→${r.after}`).join(" · ")+`</div>`:""}
+        W.ripple.map(r=>`E${EL(r.entry)} ${r.leg}: ${r.before}→${r.after}`).join(" · ")+`</div>`:""}
       <table><thead><tr><th>Week</th><th>Current plan</th><th>With ${team}</th><th></th></tr></thead><tbody>` +
       W.diff.map(r=>`<tr><td>${r.leg}</td>
         <td>${r.before?`${r.before} (${Math.round((r.pb||0)*100)}%)`:"—"}</td>
@@ -723,7 +724,7 @@ async function runWhatIf(e, leg, team){
 async function setBucket(e, bucket, leg){
   try {
     await api("/api/bucket", {entry:e, bucket:bucket||null, leg:leg||null});
-    toast(leg ? `${leg} → ${bucket||"default"}` : `Entry ${e} default → ${bucket||"none"}`);
+    toast(leg ? `${leg} → ${bucket||"default"}` : `Entry ${EL(e)} default → ${bucket||"none"}`);
     await refresh();
   } catch(err){ toast(`⚠ ${err.message}`); }
 }
@@ -842,7 +843,7 @@ async function runVerify(){
     if (!V.results.length){ el.innerHTML = `<div class="banner info">No locked picks for this week — nothing to verify.</div>`; return; }
     el.innerHTML = V.results.map(r => {
       const cls = r.status==="SURVIVED" ? "ok" : r.status==="PENDING" ? "info" : "err";
-      return `<div class="banner ${cls}">Entry ${r.entry} · ${r.team} → <b>${r.status}</b>${r.score?` · ${r.score}`:""}</div>`;
+      return `<div class="banner ${cls}">Entry ${EL(r.entry)} · ${r.team} → <b>${r.status}</b>${r.score?` · ${r.score}`:""}</div>`;
     }).join("") + `<p class="dim">${V.alive} entries alive</p>`;
     await refresh();
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }

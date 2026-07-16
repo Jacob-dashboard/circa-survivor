@@ -181,7 +181,7 @@ def build_board(state, entry_ids, res, probs, meta, current_leg,
         <div class="entry">
           <div class="e-head">
             <span class="e-dot" style="background:{'#2ecc71' if alive else '#ef4444'}"></span>
-            <span class="e-name">ENTRY {e}</span>
+            <span class="e-name">ENTRY {int(e)+1}</span>
             <span class="e-chip" style="color:{chip_color};border-color:{chip_color}44">{chip}</span>
           </div>
           {matchup}

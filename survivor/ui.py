@@ -160,7 +160,7 @@ with st.sidebar:
         options = ["—", "chalk", "contrarian", "conservation"]
         idx = options.index(current) if current in options else 0
         n_over = len(entry.get("leg_buckets", {}))
-        label = f"Entry {e}" + (f" ({n_over} week override{'s' if n_over != 1 else ''})" if n_over else "")
+        label = f"Entry {int(e)+1}" + (f" ({n_over} week override{'s' if n_over != 1 else ''})" if n_over else "")
         new_bucket = st.selectbox(label, options, index=idx, key=f"bucket_{e}")
         new_val = None if new_bucket == "—" else new_bucket
         if new_val != current:
@@ -348,7 +348,7 @@ def render_entry_card(entry_idx, compact=False, key_prefix="tw"):
 
     with st.container(border=True):
         status = "🔒 LOCKED" if locked_team else ("▶ pick now" if alive else "❌ eliminated")
-        st.markdown(f"#### {'🟢' if alive else '🔴'} Entry {entry_idx} · {bucket} · {status}")
+        st.markdown(f"#### {'🟢' if alive else '🔴'} Entry {int(entry_idx)+1} · {bucket} · {status}")
         if not alive:
             st.caption("This entry has been eliminated.")
             return
@@ -584,7 +584,7 @@ def render_what_if(entry_idx, leg_id):
     ]
     if others_on_choice:
         st.error(
-            f"⚠ Entry {', '.join(others_on_choice)} is also on {choice} in {leg_id} — "
+            f"⚠ Entry {', '.join(str(int(o)+1) for o in others_on_choice)} is also on {choice} in {leg_id} — "
             "this override stacks both entries on one game."
         )
 
@@ -618,7 +618,7 @@ def render_what_if(entry_idx, leg_id):
             b = res.get(o, {}).get(lid)
             a = sim_res.get(o, {}).get(lid)
             if b != a and lid not in state["entries"][o]["picks"]:
-                ripple.append(f"Entry {o} {lid}: {b} → {a}")
+                ripple.append(f"Entry {int(o)+1} {lid}: {b} → {a}")
     if ripple:
         st.info("Portfolio ripple (decorrelation re-balances the other entry): "
                 + " · ".join(ripple))
@@ -660,7 +660,7 @@ elif meta["status"] != "Optimal":
 # ---------------------------------------------------------------------------
 
 tab_labels = (["🏟 Board", "🎯 This Week"]
-              + [f"Entry {e}" for e in entry_ids]
+              + [f"Entry {int(e)+1}" for e in entry_ids]
               + ["📈 Market", "🔧 Data & Tools"])
 all_tabs = st.tabs(tab_labels)
 tab_board = all_tabs[0]
@@ -967,11 +967,11 @@ with tab_tools:
             avail = [t for t in pool if t not in used]
             locked_p = entry["picks"].get(pool_leg)
             if locked_p:
-                st.markdown(f"**Entry {e}**: 🔒 locked `{locked_p}`")
+                st.markdown(f"**Entry {int(e)+1}**: 🔒 locked `{locked_p}`")
             elif not avail:
-                st.markdown(f"**Entry {e}**: ⚠ EXHAUSTED")
+                st.markdown(f"**Entry {int(e)+1}**: ⚠ EXHAUSTED")
             else:
-                st.markdown(f"**Entry {e}** ({len(avail)}/{len(pool)} available): "
+                st.markdown(f"**Entry {int(e)+1}** ({len(avail)}/{len(pool)} available): "
                             + " ".join(f"`{t}`" for t in avail))
 
     with st.expander("💵 Ingest moneylines (feeds the solver's market blend)"):
@@ -998,7 +998,7 @@ with tab_tools:
                 score = ""
                 if info and info.get("home_score") is not None:
                     score = f" — {info['away']} {info['away_score']} @ {info['home']} {info['home_score']}"
-                st.write(f"Entry {e}: {team} → **{status_str}**{score}")
+                st.write(f"Entry {int(e)+1}: {team} → **{status_str}**{score}")
             st.rerun()
 
     with st.expander("🩹 Injuries (ESPN feed)"):

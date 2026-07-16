@@ -69,7 +69,7 @@ def cmd_status(state, args):
         entry = state["entries"][e]
         picks_str = ", ".join(f"{lid}={t}" for lid, t in entry["picks"].items()) or "(none yet)"
         print(
-            f"{e:<6}"
+            f"{str(int(e)+1):<6}"
             f"{(entry.get('bucket') or '—'):<14}"
             f"{_alive_mark(entry['alive']):<7}"
             f"{len(entry['used_teams']):<6}"
@@ -97,7 +97,7 @@ def cmd_status(state, args):
                 tag = "EXHAUSTED — entry will die without picking"
             else:
                 tag = ",".join(remaining)
-            print(f"  Entry {e}: {tag}")
+            print(f"  Entry {int(e)+1}: {tag}")
 
     # Quick sanity flags
     print()
@@ -127,9 +127,9 @@ def cmd_pools(state, args):
             avail = [t for t in pool if t not in used]
             locked = entry["picks"].get(lid)
             if locked:
-                print(f"  Entry {e}: locked {locked}")
+                print(f"  Entry {int(e)+1}: locked {locked}")
             else:
-                print(f"  Entry {e}: {len(avail)}/{len(pool)} available "
+                print(f"  Entry {int(e)+1}: {len(avail)}/{len(pool)} available "
                       f"({'all' if len(avail) == len(pool) else ','.join(avail)})")
 
 
@@ -156,7 +156,7 @@ def cmd_forecast(state, args):
     leg_order = [lid for lid in sched.LEG_ORDER if lid in (set(meta["near_term"]) | set(meta["holiday"]))]
     for e in sorted(res):
         bucket = state["entries"][e].get("bucket") or "—"
-        print(f"Entry {e}  ({bucket}):")
+        print(f"Entry {int(e)+1}  ({bucket}):")
         for lid in leg_order:
             team = res[e].get(lid)
             if team is None:
@@ -195,12 +195,12 @@ def cmd_pick(state, args):
         raise SystemExit(f"{team} is not in the {lid} pool. Pool: {sorted(pool)}")
     used = set(state["entries"][e]["used_teams"])
     if team in used and team != state["entries"][e]["picks"].get(lid):
-        raise SystemExit(f"Entry {e} already used {team} in another leg. Pick blocked.")
+        raise SystemExit(f"Entry {int(e)+1} already used {team} in another leg. Pick blocked.")
     survived = not args.lost
     state_mod.record_pick(state, e, lid, team, survived=survived)
     state_mod.save_state(state)
     msg = "LOST (entry eliminated)" if args.lost else "survived"
-    print(f"Recorded: Entry {e}  {lid}  {team}  -> {msg}")
+    print(f"Recorded: Entry {int(e)+1}  {lid}  {team}  -> {msg}")
 
 
 def cmd_bucket(state, args):
@@ -211,7 +211,7 @@ def cmd_bucket(state, args):
         raise SystemExit("Bucket must be one of: chalk, contrarian, conservation")
     state_mod.set_bucket(state, args.entry, args.bucket)
     state_mod.save_state(state)
-    print(f"Entry {args.entry} bucket -> {args.bucket}")
+    print(f"Entry {int(args.entry)+1} bucket -> {args.bucket}")
 
 
 def cmd_line(state, args):
@@ -294,7 +294,7 @@ def cmd_verify(state, args):
         score = ""
         if info and info.get("home_score") is not None:
             score = f"  final {info['away']}-{info['home']}: {info['away_score']}-{info['home_score']}"
-        print(f"  Entry {e}  picked {team:<4s} -> {status}{score}")
+        print(f"  Entry {int(e)+1}  picked {team:<4s} -> {status}{score}")
     # quick alive summary
     alive = sum(1 for e in state["entries"].values() if e["alive"])
     print(f"\nAlive after verification: {alive} of {len(state['entries'])}")
