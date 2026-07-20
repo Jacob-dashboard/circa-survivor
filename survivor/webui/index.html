@@ -113,6 +113,7 @@ input[type=checkbox] { accent-color:var(--amber); width:15px; height:15px; }
 
 /* season rail — smooth floating tiles */
 .rail { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px; margin-bottom:6px; }
+.rail.wrap { flex-wrap:wrap; overflow:visible; }
 .cellw { flex:0 0 auto; min-width:74px; border-radius:var(--r-sm); background:var(--cell);
   border:1px solid var(--line); text-align:center; padding:9px 8px 8px; cursor:pointer;
   transition:transform .12s, border-color .15s; }
@@ -129,6 +130,8 @@ input[type=checkbox] { accent-color:var(--amber); width:15px; height:15px; }
 
 /* weekly strategy editor — soft pills */
 .stratstrip { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px; margin-bottom:6px; }
+.stratstrip.wrap { flex-wrap:wrap; overflow:visible; }
+.stratstrip.wrap .scell { min-width:96px; }
 .scell { flex:0 0 auto; background:var(--cell); border:1px solid var(--line);
   border-radius:var(--r-sm); padding:8px 10px; text-align:center; }
 .scell .wk { font-size:.6rem; font-weight:600; color:var(--dim); margin-bottom:5px; }
@@ -365,9 +368,9 @@ function matchup(e){
     ${warn}${act}</div>`;
 }
 
-function rail(e){
+function rail(e, wrap){
   const ent = D.entries[e];
-  return `<div class="rail">` + D.loaded_legs.map(({id:lid, holiday}) => {
+  return `<div class="rail${wrap?' wrap':''}">` + D.loaded_legs.map(({id:lid, holiday}) => {
     const lockedT = ent.picks[lid];
     const planned = (D.plan[e]||{})[lid];
     const icon = lid==="TXWEEK"?"🎄":lid==="XMASWEEK"?"🎁":"";
@@ -385,10 +388,10 @@ function rail(e){
   }).join("") + `</div>`;
 }
 
-function stratStrip(e){
+function stratStrip(e, wrap){
   const cells = D.loaded_legs.filter(l=>!l.holiday).map(({id:lid}) =>
     `<div class="scell"><div class="wk">${lid}${lid===D.current_leg?" ●":""}</div>${bucketSelect(e, lid)}</div>`);
-  return `<div class="stratstrip">${cells.join("")}</div>`;
+  return `<div class="stratstrip${wrap?' wrap':''}">${cells.join("")}</div>`;
 }
 
 function holidayPanels(e){
@@ -444,8 +447,8 @@ function renderView(){
     const e = route.slice(6);
     const leg = planSel[e] || D.current_leg;
     m.innerHTML = `
-      <h2>Entry ${EL(e)} · Season</h2>${rail(e)}
-      <h2>Strategy by week</h2>${stratStrip(e)}
+      <h2>Entry ${EL(e)} · Season</h2>${rail(e, true)}
+      <h2>Strategy by week</h2>${stratStrip(e, true)}
       <h2>This week</h2>${matchup(e)}
       <h2>Holiday pools</h2>${holidayPanels(e)}
       <h2>Plan any week</h2>

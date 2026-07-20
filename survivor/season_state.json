@@ -98,8 +98,10 @@
       "leg_buckets": {
         "W12": "chalk",
         "W9": "conservation",
-        "W1": "contrarian",
-        "W2": "contrarian"
+        "W1": "conservation",
+        "W2": "conservation",
+        "W3": "contrarian",
+        "W4": "contrarian"
       }
     },
     "1": {
