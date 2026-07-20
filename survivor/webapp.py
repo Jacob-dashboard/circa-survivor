@@ -609,45 +609,6 @@ def teams(entry: Optional[str] = None):
     }
 
 
-@app.get("/api/simulate")
-def simulate_ep(trials: Optional[int] = None, horizon: Optional[int] = None,
-                min_prob: Optional[float] = None, holiday_min_prob: Optional[float] = None,
-                future_value_weight: Optional[float] = None, endgame: Optional[bool] = None):
-    """Monte Carlo audit of the current committed plan against the model's
-    own win probabilities. Full-season by default (horizon 17)."""
-    from . import simulate
-    d = _dials(horizon, min_prob, holiday_min_prob, future_value_weight, endgame)
-    d["horizon"] = 17  # audit always spans the whole season
-    n = max(2000, min(60000, int(trials) if trials else 20000))
-    state = state_mod.load_state()
-    res, probs, meta = _solve(state, d)
-    ids = sorted(state["entries"].keys())
-
-    metrics = simulate.simulate(res, probs, ids, n_trials=n)
-    metrics["distinct"] = simulate.holiday_distinct(res, ids)
-    metrics["buckets"] = {e: state["entries"][e].get("bucket") for e in ids}
-    metrics["leg_buckets"] = {e: state["entries"][e].get("leg_buckets", {}) for e in ids}
-
-    # Chalk reference — the pure-survival ceiling. Same locked picks, but both
-    # entries forced to chalk with no weekly overrides. The gap vs your plan =
-    # the survival you're spending on strategy (decorrelation / leverage).
-    ref_state = copy.deepcopy(state)
-    for e in ids:
-        ref_state["entries"][e]["bucket"] = "chalk"
-        ref_state["entries"][e]["leg_buckets"] = {}
-    try:
-        rres, rprobs, _ = _solve(ref_state, d)
-        ref = simulate.simulate(rres, rprobs, ids, n_trials=n)
-        metrics["reference_chalk"] = {
-            "exp_alive_tx": ref["portfolio"]["exp_alive_tx"],
-            "any_alive_tx": ref["portfolio"]["any_alive_tx"],
-            "per_entry_reach_tx": {e: ref["per_entry"][e]["reach_tx"] for e in ids},
-        }
-    except Exception:
-        metrics["reference_chalk"] = None
-    return metrics
-
-
 @app.get("/api/check")
 def check():
     state = state_mod.load_state()
