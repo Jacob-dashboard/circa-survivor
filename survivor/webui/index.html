@@ -287,7 +287,7 @@ function renderHeader(){
 function renderNav(){
   const ids = Object.keys(D.entries).sort();
   const tabs = [["board","Board"], ...ids.map(e=>[`entry-${e}`,`Entry ${EL(e)}`]),
-                ["teams","Teams"], ["market","Market"], ["tools","Tools"]];
+                ["teams","Teams"], ["market","Market"], ["audit","Audit"], ["tools","Tools"]];
   $("#nav").innerHTML = tabs.map(([r,l]) =>
     `<button class="${route===r?'on':''}" onclick="go('${r}')">${l}</button>`).join("");
 }
@@ -475,6 +475,22 @@ function renderView(){
         <span class="dim"><span class="best">★</span> = best remaining week to use the team (highest win%) · cell = opponent + win% · <span style="color:var(--green)">green ≥60</span> · <span style="color:var(--amber)">gold 50–60</span> · <span style="color:var(--red)">red &lt;50</span> · — = bye · 🎄/🎁 = holiday pool</span>
       </div><div id="tmx" class="tmx"><p class="dim" style="padding:14px">loading…</p></div>`;
     loadTeams(sel, hideUsed);
+  }
+
+
+  else if (route==="audit"){
+    m.innerHTML = `<h2>Strategy audit — Monte Carlo</h2>
+      <p class="dim">Plays your full-season plan out thousands of times using each game's model
+      win probability, then measures it against the goal: <b>expected entries alive entering
+      Thanksgiving</b>, with decorrelation as the tiebreaker. Survivor is brutal — reaching
+      Thanksgiving means winning ~11 straight — so read the <b>relative</b> numbers (deadliest
+      weeks, decorrelation, chalk comparison), not just the raw survival %.</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0">
+        <label class="dim">trials <select id="sim-n" style="margin-left:6px">
+          <option>10000</option><option selected>20000</option><option>40000</option></select></label>
+        <button class="go" onclick="runAudit()">Run audit</button>
+      </div>
+      <div id="audit"><p class="dim">Click “Run audit”. Takes ~1 second.</p></div>`;
   }
 
   else if (route==="market"){
@@ -794,6 +810,72 @@ async function loadTeams(entry, hideUsed){
         <td class="num">${info.ou.toFixed(1)}</td>${cells}</tr>`;
     }).join("");
     el.innerHTML = `<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+
+
+async function runAudit(){
+  const el = $("#audit"); el.innerHTML = `<p class="dim">simulating…</p>`;
+  try {
+    const n = $("#sim-n").value;
+    const M = await api(`/api/simulate?trials=${n}&${qs()}`);
+    const P = M.portfolio, ids = Object.keys(M.per_entry).sort();
+    const ref = M.reference_chalk;
+    const b = (e) => M.buckets[e] || "—";
+    const nov = (e) => Object.keys(M.leg_buckets[e]||{}).length;
+
+    // headline metric
+    const exp = P.exp_alive_tx, refexp = ref?ref.exp_alive_tx:null;
+    const dist = P.tx_dist;
+    let head = `<div class="metricrow">
+      <div class="metric"><div class="lbl">E[entries alive entering Thanksgiving]</div>
+        <div class="val">${exp.toFixed(3)}<span class="dim" style="font-size:.8rem"> / ${M.n_entries}</span></div></div>
+      <div class="metric"><div class="lbl">Any entry alive at TX</div><div class="val">${(P.any_alive_tx*100).toFixed(1)}%</div></div>
+      <div class="metric"><div class="lbl">Both alive at TX</div><div class="val">${(P.both_alive_tx*100).toFixed(2)}%</div></div>
+      <div class="metric"><div class="lbl">Co-elimination rate</div><div class="val">${(P.co_elimination_rate*100).toFixed(0)}%
+        <span class="dim" style="font-size:.7rem">lower = better hedge</span></div></div></div>`;
+
+    // chalk comparison banner
+    let cmp = "";
+    if (ref){
+      const gap = exp - refexp;
+      const sign = gap>=0 ? "matches or beats" : "trails";
+      cmp = `<div class="banner ${gap>=-0.002?'ok':'info'}">
+        Vs a pure-survival (all-Chalk) plan: chalk reaches <b>E=${refexp.toFixed(3)}</b>, your plan
+        <b>E=${exp.toFixed(3)}</b> — your strategy ${sign} the survival ceiling
+        ${gap<-0.002?`by ${(Math.abs(gap)).toFixed(3)} alive-entries. That gap is the survival you're
+        spending on decorrelation / contrarian leverage (leverage isn't simulated — it needs pick-popularity data).`
+        :`. You're not giving up measurable survival.`}</div>`;
+    }
+
+    // distribution bar
+    const distRow = dist.map((p,i)=>`<span class="dchip ${i>=1?'ok':'bad'}">${i} alive: ${(p*100).toFixed(1)}%</span>`).join("");
+
+    // holiday decorrelation
+    const dj = M.distinct;
+    const hchip = (hw)=>{ const d=dj[hw];
+      return `<span class="dchip ${d.distinct?'ok':'bad'}">${hw}: ${d.teams.map(t=>t||"—").join(" / ")} ${d.distinct?"✓ distinct":"⚠ not distinct"}</span>`; };
+
+    // per-entry table
+    let rows = ids.map(e=>{
+      const pe = M.per_entry[e];
+      const dead = pe.deadliest.slice(0,3).map(d=>`${d.leg} ${(d.rate*100).toFixed(0)}%`).join(", ");
+      const refr = ref?ref.per_entry_reach_tx[e]:null;
+      return `<tr><td>Entry ${EL(e)} <span class="dim">${b(e)}${nov(e)?` +${nov(e)}wk`:""}</span></td>
+        <td class="num">${(pe.reach_tx*100).toFixed(1)}%${refr!=null?`<span class="dim"> (chalk ${(refr*100).toFixed(1)}%)</span>`:""}</td>
+        <td class="num">${(pe.reach_xmas*100).toFixed(1)}%</td>
+        <td class="num">${(pe.win*100).toFixed(2)}%</td>
+        <td>${dead}</td></tr>`; }).join("");
+
+    el.innerHTML = head + cmp +
+      `<h2>Alive entering Thanksgiving — distribution</h2><div>${distRow}</div>
+       <h2>Decorrelation at the holidays</h2><div>${hchip("TXWEEK")} ${hchip("XMASWEEK")}</div>
+       <p class="dim">Co-elimination = how often both entries die the same week when both were alive. Distinct holiday teams = the hedge precondition (arrive with 2 alive on different teams).</p>
+       <h2>Per entry</h2>
+       <table><thead><tr><th>Entry</th><th class="num">Reach TX</th><th class="num">Reach XMAS</th><th class="num">Win season</th><th>Deadliest weeks</th></tr></thead>
+       <tbody>${rows}</tbody></table>
+       <p class="dim">${M.trials.toLocaleString()} trials · plan covers ${Object.values(M.planned_legs)[0]}/${M.total_legs} legs ·
+       measures survival only; contrarian field-leverage is not modeled.</p>`;
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
 
