@@ -34,6 +34,44 @@ ESPN_URL = (
 USER_AGENT = "circa-survivor-tool/1.0"
 SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "schedule.py")
 
+# ESPN sometimes 403s the primary host (site.api) under rate limiting while an
+# identical mirror on site.web.api keeps serving the same JSON. Every ESPN
+# fetch in the project goes through espn_get(), which transparently retries the
+# request against the mirror host on ANY failure — so a block on one host never
+# takes the app's data offline.
+ESPN_PRIMARY_HOST = "site.api.espn.com"
+ESPN_MIRROR_HOST = "site.web.api.espn.com"
+
+# Which host served the most recent successful fetch — surfaced to the UI so
+# you can see when the app is running on the fallback.
+_LAST_ESPN_HOST = {"host": None}
+
+
+def espn_get(url: str, timeout: int = 20) -> dict:
+    """GET+parse an ESPN JSON URL, falling back to the mirror host on failure.
+
+    Tries the URL as given; on any URLError/HTTPError (e.g. 403) or bad JSON,
+    retries the same path with the host swapped primary<->mirror. Raises only
+    if BOTH hosts fail.
+    """
+    hosts = [ESPN_PRIMARY_HOST, ESPN_MIRROR_HOST]
+    # If the caller already used the mirror, try it first then the primary.
+    if ESPN_MIRROR_HOST in url:
+        hosts = [ESPN_MIRROR_HOST, ESPN_PRIMARY_HOST]
+    last_err = None
+    for host in hosts:
+        swapped = url.replace(ESPN_PRIMARY_HOST, host).replace(ESPN_MIRROR_HOST, host)
+        req = urllib.request.Request(swapped, headers={"User-Agent": USER_AGENT})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            _LAST_ESPN_HOST["host"] = host
+            return data
+        except Exception as e:  # URLError, HTTPError, JSONDecodeError
+            last_err = e
+            continue
+    raise RuntimeError(f"ESPN fetch failed on both hosts for {url}: {last_err}")
+
 # Map ESPN team abbreviations to ours where they disagree.
 # Verify against data.BASE_ELO on first run; the brief flagged LV as the one
 # to watch (ESPN uses LV; we use LV; we expect a no-op).
@@ -58,16 +96,9 @@ _LAST_FETCH_META: dict = {
 # ---------------------------------------------------------------------------
 
 def fetch_week(year: int, week: int) -> dict:
-    """Hit ESPN scoreboard for one (year, week). Raises on network failure."""
-    url = ESPN_URL.format(year=year, week=week)
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"ESPN fetch failed for {year} week {week}: {e}") from e
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"ESPN returned non-JSON for {year} week {week}: {e}") from e
+    """Hit ESPN scoreboard for one (year, week). Uses espn_get's host fallback,
+    so a 403 on the primary host transparently retries the mirror."""
+    return espn_get(ESPN_URL.format(year=year, week=week))
 
 
 def _team_abbr(abbr: str) -> str:

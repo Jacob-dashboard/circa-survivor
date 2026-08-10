@@ -35,12 +35,9 @@ def fetch_records(year=2026):
     Returns {} when the season hasn't started / ESPN hasn't seeded standings,
     so callers can suppress records cleanly in the offseason.
     """
-    req = urllib.request.Request(
-        STANDINGS_URL.format(year=year), headers={"User-Agent": USER_AGENT}
-    )
+    from .ingest_schedule import espn_get
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            payload = json.loads(r.read().decode("utf-8"))
+        payload = espn_get(STANDINGS_URL.format(year=year))
     except Exception:
         return {}
 

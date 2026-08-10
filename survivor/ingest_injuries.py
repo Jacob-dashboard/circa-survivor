@@ -41,13 +41,9 @@ _SEVERITY_RANK = {
 
 
 def fetch_injuries():
-    """One-shot fetch of the full league injury report."""
-    req = urllib.request.Request(INJURIES_URL, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return json.loads(r.read().decode("utf-8"))
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"ESPN injuries fetch failed: {e}") from e
+    """One-shot fetch of the full league injury report (host fallback via espn_get)."""
+    from .ingest_schedule import espn_get
+    return espn_get(INJURIES_URL)
 
 
 def parse_injuries(payload, severity="high"):

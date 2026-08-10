@@ -271,3 +271,10 @@ def game_for_team(meta_by_pair, team):
         if team == away or team == home:
             return away, home, meta
     return None
+
+
+def _last_espn_host():
+    """Which ESPN host served the most recent fetch — 'site.web.api.espn.com'
+    means we're on the fallback mirror. None until a fetch has run."""
+    from .ingest_schedule import _LAST_ESPN_HOST
+    return _LAST_ESPN_HOST.get("host")

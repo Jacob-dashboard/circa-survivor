@@ -210,6 +210,7 @@ def board(horizon: Optional[int] = None, min_prob: Optional[float] = None,
             "weight": (state.get("power_rankings") or {}).get("weight", 0.35),
             "count": len((state.get("power_rankings") or {}).get("fpi", {})),
         },
+        "espn_host": ingest_lines._last_espn_host(),
     }
 
 
