@@ -483,7 +483,13 @@ function renderView(){
         <select id="mkt-leg">${D.loaded_legs.map(({id})=>`<option ${id===D.current_leg?"selected":""}>${id}</option>`).join("")}</select>
         <button class="go" onclick="loadMarket()">Load</button>
         <button class="sub" onclick="ingestLines()">Ingest lines → solver</button></div>
-      <div id="mkt"></div>`;
+      <div id="mkt"></div>
+      <h2>Field ownership — who the pool is picking</h2>
+      <p class="dim">Real survivor pick percentages from SurvivorGrid for the current week.
+        Feeds the contrarian strategy's fade directly (replaces the win-prob proxy). Ingest weekly.
+        ${D.popularity && Object.keys(D.popularity).length ? `Loaded: <b>${Object.keys(D.popularity).length} teams</b>` : '<b>Not loaded</b> — contrarian uses the win-prob proxy until ingested.'}</p>
+      <button class="go" onclick="ingestPopularity()">Ingest field pick% (${D.current_leg})</button>
+      <div id="pop"></div>`;
     loadMarket();
   }
 
@@ -611,17 +617,19 @@ async function loadPlanner(e, leg){
     const below = P.alternatives.filter(a=>a.below_floor);
     const showAll = localStorage.getItem(`showall_${e}`) === "1";
     const visible = showAll ? P.alternatives : above;
+    const hasPop = P.alternatives.some(a=>a.pick_pct!=null);
     el.innerHTML = `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <span class="dim">${above.length} team${above.length!==1?"s":""} above your ${Math.round(P.floor*100)}% floor · ${below.length} below</span>
       <label class="ck" style="color:var(--amber);font-weight:600"><input type="checkbox" ${showAll?"checked":""}
         onchange="localStorage.setItem('showall_${e}', this.checked?'1':'0');loadPlanner('${e}','${leg}')">
         show all ${P.alternatives.length} teams — every team playing this week is selectable, floor or not</label></div>
-    <div style="overflow-x:auto"><table><thead><tr><th>Team</th><th>Game</th><th class="num">Win%</th><th class="num">O/U</th>
+    <div style="overflow-x:auto"><table><thead><tr><th>Team</th><th>Game</th><th class="num">Win%</th>${hasPop?'<th class="num">Field%</th>':''}<th class="num">O/U</th>
       <th>Style</th><th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
       visible.map(a => `<tr class="${a.is_rec?'rec':''} clickable" style="${a.below_floor?'opacity:.5':''}" onclick="runWhatIf('${e}','${leg}','${a.team}')">
         <td>${a.is_rec?"★ ":""}${a.team}${rec(a.team)}</td>
         <td style="white-space:nowrap">${matchupCell(a.team, P.game_meta)}</td>
         <td class="num">${pct(a.win_prob)}</td>
+        ${hasPop?`<td class="num" style="color:${a.pick_pct>=0.15?'var(--red)':a.pick_pct!=null&&a.pick_pct<0.03?'var(--green)':'inherit'}">${a.pick_pct!=null?(a.pick_pct*100).toFixed(1)+'%':'—'}</td>`:''}
         <td class="num">${a.ou!=null?a.ou.toFixed(1):"—"}</td>
         <td>${a.below_floor?`<span class="dim">below floor</span>`:styleBadges(a.style, a.style_strong)}</td>
         <td>${[a.in_tx?"TX":null,a.in_xmas?"XMAS":null].filter(Boolean).join("/")||"—"}</td>
@@ -629,7 +637,7 @@ async function loadPlanner(e, leg){
         <td>${a.fv>=0.8?"🛑 hold":a.fv>=0.35?"🤔 costly":"✅ burn"}</td>
         <td class="dim">explore →</td></tr>`).join("") + `</tbody></table></div>
       <p class="dim">★ model pick · Style = which strategy would take this pick this week ·
-      FV = season value of NOT burning the team now · click a row to see the ripple</p>
+      FV = season value of NOT burning the team now · Field% = share of the survivor field on this team (red = crowded, green = contrarian value) · click a row to see the ripple</p>
       ${routingNote(P, leg)}
       <div id="whatif"></div>`;
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
@@ -794,6 +802,17 @@ async function loadTeams(entry, hideUsed){
         <td class="num">${info.ou.toFixed(1)}</td>${cells}</tr>`;
     }).join("");
     el.innerHTML = `<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+  } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
+}
+
+
+async function ingestPopularity(){
+  const el = $("#pop"); el.innerHTML = `<p class="dim">fetching SurvivorGrid…</p>`;
+  try {
+    const r = await api("/api/popularity", {leg: D.current_leg});
+    el.innerHTML = `<div class="banner ok">✓ ${r.count} teams for ${r.leg}. Most-owned:
+      ${r.top.map(([t,v])=>`${t} ${v}%`).join(" · ")}. Contrarian now fades the real field.</div>`;
+    toast("field pick% blended into contrarian"); await refresh();
   } catch(err){ el.innerHTML = `<div class="banner err">${err.message}</div>`; }
 }
 

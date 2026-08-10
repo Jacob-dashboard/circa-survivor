@@ -211,6 +211,7 @@ def board(horizon: Optional[int] = None, min_prob: Optional[float] = None,
             "count": len((state.get("power_rankings") or {}).get("fpi", {})),
         },
         "espn_host": ingest_lines._last_espn_host(),
+        "popularity": (state.get("pick_popularity", {}) or {}).get(state["current_leg"], {}),
     }
 
 
@@ -233,6 +234,9 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
     floor = d["holiday_min_prob"] if leg in holiday else d["min_prob"]
     ent = state["entries"][entry]
     alternatives = _rank_alternatives(state, res, probs, leg, entry, floor)
+    leg_pop = (state.get("pick_popularity", {}) or {}).get(leg, {})
+    for a in alternatives:
+        a["pick_pct"] = leg_pop.get(a["team"])
 
     # ---- Pick style classifier -------------------------------------------
     # For each strategy bucket, score every available team with that bucket's
@@ -537,6 +541,28 @@ def power(body: PowerReq):
     top = sorted(block["fpi"].items(), key=lambda kv: -kv[1])[:5]
     return {"ok": True, "count": len(block["fpi"]), "fetched": block["fetched"],
             "weight": block["weight"], "top": top}
+
+
+class PopReq(BaseModel):
+    leg: Optional[str] = None   # default current_leg
+
+
+@app.post("/api/popularity")
+def popularity(body: PopReq):
+    """Ingest SurvivorGrid field pick% for a leg (default current) into state."""
+    from . import ingest_popularity
+    state = state_mod.load_state()
+    leg = body.leg or state["current_leg"]
+    if leg not in sched.SCHEDULE:
+        raise HTTPException(404, f"unknown leg {leg}")
+    try:
+        pop = ingest_popularity.ingest_popularity(state, leg)
+    except Exception as ex:
+        raise HTTPException(502, f"SurvivorGrid fetch failed: {ex}")
+    state_mod.save_state(state)
+    top = sorted(pop.items(), key=lambda kv: -kv[1])[:6]
+    return {"ok": True, "leg": leg, "count": len(pop),
+            "top": [(t, round(v * 100, 1)) for t, v in top]}
 
 
 class VerifyReq(BaseModel):

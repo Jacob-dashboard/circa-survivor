@@ -231,9 +231,17 @@ def solve(
             fv_mult = fv_mult_by_bucket.get(bucket, fv_mult_by_bucket.get(None, 1.0))
             wk_mult = holiday_weight if lid in holiday_set else 1.0
             top = max(probs[lid].values())
+            # Real field pick-popularity for this leg if ingested; else the
+            # win-prob proxy. Normalized so the most-owned team => pop 1.0,
+            # keeping the contrarian weight calibrated across both modes.
+            real_pop = state.get("pick_popularity", {}).get(lid)
+            max_pop = max(real_pop.values()) if real_pop else None
             for team, var in team_vars.items():
                 p = probs[lid][team]
-                pop = p / top
+                if real_pop and max_pop:
+                    pop = real_pop.get(team, 0.0) / max_pop
+                else:
+                    pop = p / top
                 coeff = wk_mult * (math.log(p) - cw * pop)
                 # Conservation: burning a high-future-value team in an
                 # ordinary week costs its option value, scaled by the leg's
