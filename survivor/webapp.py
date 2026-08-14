@@ -48,7 +48,10 @@ from . import ingest_lines, ingest_results, ingest_injuries
 # every request needs HTTP Basic auth: user "circa" (or APP_USER) + the
 # password. Browsers show a native login box and remember it.
 # ---------------------------------------------------------------------------
-_basic = HTTPBasic(auto_error=True)
+# auto_error=False so WE issue the 401 challenge — with a realm, which some
+# browsers (notably mobile) require before they'll show the login box.
+_basic = HTTPBasic(auto_error=False)
+_REALM = 'Basic realm="Circa Survivor 2026", charset="UTF-8"'
 
 
 def _auth(creds: Optional[HTTPBasicCredentials] = Depends(_basic)):
@@ -56,11 +59,14 @@ def _auth(creds: Optional[HTTPBasicCredentials] = Depends(_basic)):
     if not pw:
         return  # local: no auth
     user = os.environ.get("APP_USER", "circa")
-    ok = (secrets.compare_digest(creds.username, user)
-          and secrets.compare_digest(creds.password, pw))
+    ok = bool(creds) and (
+        secrets.compare_digest(creds.username, user)
+        and secrets.compare_digest(creds.password, pw))
     if not ok:
-        raise HTTPException(status_code=401, detail="unauthorized",
-                            headers={"WWW-Authenticate": "Basic"})
+        # 401 + realm challenge -> browser shows the native login prompt.
+        raise HTTPException(status_code=401,
+                            detail="Log in — username is 'circa'",
+                            headers={"WWW-Authenticate": _REALM})
 
 
 # Only require the dependency when a password is configured, so local requests
