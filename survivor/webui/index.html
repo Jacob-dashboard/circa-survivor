@@ -287,7 +287,7 @@ function renderHeader(){
 function renderNav(){
   const ids = Object.keys(D.entries).sort();
   const tabs = [["board","Board"], ...ids.map(e=>[`entry-${e}`,`Entry ${EL(e)}`]),
-                ["teams","Teams"], ["market","Market"], ["tools","Tools"]];
+                ["picks","Picks"], ["teams","Teams"], ["market","Market"], ["tools","Tools"]];
   $("#nav").innerHTML = tabs.map(([r,l]) =>
     `<button class="${route===r?'on':''}" onclick="go('${r}')">${l}</button>`).join("");
 }
@@ -460,6 +460,53 @@ function renderView(){
     loadPlanner(e, leg);
   }
 
+
+
+  else if (route==="picks"){
+    const ids2 = Object.keys(D.entries).sort();
+    const legOrder = D.loaded_legs.map(l=>l.id);
+    const cards = ids2.map(e=>{
+      const ent = D.entries[e];
+      const picks = ent.picks || {};
+      const used = ent.used || [];
+      const lockedLegs = legOrder.filter(l=>picks[l]);
+      const nWeeks = legOrder.length;
+      // this-week status
+      const nowLeg = D.current_leg;
+      const nowPick = picks[nowLeg];
+      const nowHtml = nowPick
+        ? `<span style="color:var(--green)">🔒 ${nowPick}</span> for <b>${nowLeg}</b>`
+        : `<span style="color:var(--amber)">⏳ not locked yet</span> for <b>${nowLeg}</b>`;
+      // locked table
+      const rows = lockedLegs.length ? lockedLegs.map(l=>{
+        const icon = l==="TXWEEK"?"🎄 ":l==="XMASWEEK"?"🎁 ":"";
+        const isNow = l===nowLeg;
+        return `<tr${isNow?' style="background:rgba(224,177,92,.08)"':''}>
+          <td>${icon}${l}${isNow?' <span class="dim">← this week</span>':''}</td>
+          <td><b>${picks[l]}</b>${D.records[picks[l]]?` <span class="dim">(${D.records[picks[l]]})</span>`:''}</td></tr>`;
+      }).join("") : `<tr><td colspan="2" class="dim">No picks locked yet.</td></tr>`;
+      // used roster chips
+      const roster = used.length
+        ? used.map(t=>`<span class="tchip burned" style="text-decoration:none;opacity:1;cursor:default">${t}</span>`).join(" ")
+        : `<span class="dim">none yet</span>`;
+      const alive = ent.alive;
+      return `<div class="ticket" style="border-left-color:${BC[ent.bucket]||'var(--amber)'}">
+        <div class="t-head"><span class="st" style="background:${alive?'var(--green)':'var(--red)'}"></span>
+          <span class="nm">Entry ${EL(e)}</span>
+          <span class="dim" style="margin-left:auto">${lockedLegs.length}/${nWeeks} weeks locked · ${used.length} teams used</span></div>
+        <div class="t-body">
+          <div class="mu" style="margin-bottom:12px"><div class="dim" style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">This week</div>${nowHtml}</div>
+          <h2 style="margin-top:2px">Locked picks</h2>
+          <table><thead><tr><th>Week</th><th>Locked team</th></tr></thead><tbody>${rows}</tbody></table>
+          <h2>Teams used — can't be picked again</h2>
+          <div class="chips">${roster}</div>
+        </div></div>`;
+    }).join("");
+    m.innerHTML = `<h2>My picks — locked selections by entry</h2>
+      <p class="dim">Every team you've locked, week by week, plus the roster you've spent.
+      A locked pick 🔒 is committed; the whole-season plan re-routes around it. Lock or unlock on each entry's tab.</p>
+      <div class="grid">${cards}</div>`;
+  }
 
   else if (route==="teams"){
     const ids2 = Object.keys(D.entries).sort();
