@@ -50,7 +50,15 @@ def load_state():
 
     Never writes to disk. Returning a deep copy guarantees mutations by
     callers cannot accidentally edit the module-level DEFAULT_STATE.
+
+    On the cloud (GIT_BACKED_STATE set) this first pulls the latest committed
+    state so the deployed URL stays in sync with the Mac. Locally it's a no-op.
     """
+    try:
+        from . import git_sync
+        git_sync.pull_state()
+    except Exception:
+        pass
     if os.path.exists(STATE_PATH):
         with open(STATE_PATH, "r") as f:
             return json.load(f)
@@ -60,6 +68,13 @@ def load_state():
 def save_state(state):
     with open(STATE_PATH, "w") as f:
         json.dump(state, f, indent=2)
+    # Cloud only: persist the write back to git so it survives restarts and
+    # syncs to the Mac. No-op locally.
+    try:
+        from . import git_sync
+        git_sync.push_state()
+    except Exception:
+        pass
 
 
 def current_elo(state):

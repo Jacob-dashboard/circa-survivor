@@ -92,11 +92,14 @@
   "entries": {
     "0": {
       "alive": true,
-      "used_teams": [],
-      "picks": {},
+      "used_teams": [
+        "LV"
+      ],
+      "picks": {
+        "W1": "LV"
+      },
       "bucket": null,
       "leg_buckets": {
-        "W12": "chalk",
         "W9": "conservation",
         "W1": "conservation",
         "W2": "conservation",
@@ -106,14 +109,14 @@
     },
     "1": {
       "alive": true,
-      "used_teams": [],
-      "picks": {},
+      "used_teams": [
+        "TEN"
+      ],
+      "picks": {
+        "W1": "TEN"
+      },
       "bucket": "contrarian",
-      "leg_buckets": {
-        "W1": "contrarian",
-        "W2": "contrarian",
-        "W3": "contrarian"
-      }
+      "leg_buckets": {}
     }
   },
   "notes": {},

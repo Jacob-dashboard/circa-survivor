@@ -26,9 +26,11 @@ Endpoints:
 import copy
 import math
 import os
+import secrets
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from typing import Optional
 
 from pydantic import BaseModel
@@ -39,7 +41,33 @@ from . import solver
 from . import state as state_mod
 from . import ingest_lines, ingest_results, ingest_injuries
 
-app = FastAPI(title="Circa Survivor 2026")
+
+# ---------------------------------------------------------------------------
+# Password gate (public cloud only). If APP_PASSWORD is unset — the local Mac —
+# auth is skipped entirely, so nothing changes for LAN use. When set (Render),
+# every request needs HTTP Basic auth: user "circa" (or APP_USER) + the
+# password. Browsers show a native login box and remember it.
+# ---------------------------------------------------------------------------
+_basic = HTTPBasic(auto_error=True)
+
+
+def _auth(creds: Optional[HTTPBasicCredentials] = Depends(_basic)):
+    pw = os.environ.get("APP_PASSWORD")
+    if not pw:
+        return  # local: no auth
+    user = os.environ.get("APP_USER", "circa")
+    ok = (secrets.compare_digest(creds.username, user)
+          and secrets.compare_digest(creds.password, pw))
+    if not ok:
+        raise HTTPException(status_code=401, detail="unauthorized",
+                            headers={"WWW-Authenticate": "Basic"})
+
+
+# Only require the dependency when a password is configured, so local requests
+# never even carry an auth header.
+_DEPS = [Depends(_auth)] if os.environ.get("APP_PASSWORD") else []
+
+app = FastAPI(title="Circa Survivor 2026", dependencies=_DEPS)
 
 _WEBUI = os.path.join(os.path.dirname(__file__), "webui", "index.html")
 

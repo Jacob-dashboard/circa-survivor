@@ -1,0 +1,30 @@
+# Render deploy for the Circa Survivor HTML app (FastAPI).
+# One-time setup on render.com:
+#   1. New + -> Blueprint -> connect the Jacob-dashboard/circa-survivor repo.
+#   2. Render reads this file. Set the env vars marked sync:false in the
+#      dashboard (they are secrets, not committed):
+#        APP_PASSWORD   -> the login password you want
+#        GITHUB_TOKEN   -> a GitHub PAT with contents:write on this repo
+#   3. Turn OFF "Auto-Deploy" for the service so cloud state writes don't
+#      trigger redeploys (they persist via git either way).
+services:
+  - type: web
+    name: circa-survivor
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn survivor.webapp:app --host 0.0.0.0 --port $PORT"
+    autoDeploy: false
+    envVars:
+      - key: APP_USER
+        value: circa
+      - key: APP_PASSWORD
+        sync: false          # set in dashboard — the login password
+      - key: GIT_BACKED_STATE
+        value: "1"
+      - key: GIT_REMOTE
+        value: Jacob-dashboard/circa-survivor
+      - key: GITHUB_TOKEN
+        sync: false          # set in dashboard — GitHub PAT, contents:write
+      - key: PYTHON_VERSION
+        value: "3.12.7"
