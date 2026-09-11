@@ -124,13 +124,18 @@ def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=None):
     is always visible. top_n=None returns the full slate (the planner's
     default)."""
     entry = state["entries"][entry_idx]
-    used = set(entry["used_teams"])
+    picks = entry.get("picks", {})
+    # A team is "unavailable" only if it's locked into a DIFFERENT week. The
+    # team picked for THIS leg stays selectable so the current week's pick can
+    # be changed in place (re-pick) rather than only unlocked.
+    used_other = {t for lid, t in picks.items() if lid != leg_id}
+    current_pick = picks.get(leg_id)
     leg_probs = probs.get(leg_id, {})
     if not leg_probs:
         return []
     cands = []
     for team, p in leg_probs.items():
-        is_used = team in used
+        is_used = team in used_other
         stacks = sorted(o for o in res if o != entry_idx
                         and res.get(o, {}).get(leg_id) == team)
         cands.append({
@@ -138,6 +143,7 @@ def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=None):
             "win_prob": round(p, 4),
             "below_floor": p < floor,
             "used": is_used,
+            "is_current": team == current_pick,
             "in_tx": team in sched.TXWEEK_POOL,
             "in_xmas": team in sched.XMASWEEK_POOL,
             "stacks_with": stacks,
@@ -422,11 +428,20 @@ def lock(body: LockReq):
     if body.team not in pool:
         raise HTTPException(400, f"{body.team} not in {body.leg} pool")
     ent = state["entries"][body.entry]
-    if body.team in ent["used_teams"] and ent["picks"].get(body.leg) != body.team:
-        raise HTTPException(409, f"entry {body.entry} already used {body.team}")
+    existing = ent["picks"].get(body.leg)
+    # Refuse only if the team is locked into a DIFFERENT week (genuinely burned).
+    used_elsewhere = {t for lid, t in ent["picks"].items() if lid != body.leg}
+    if body.team in used_elsewhere:
+        raise HTTPException(409, f"entry {body.entry} already used {body.team} in another week")
+    # Re-pick: if this leg already has a different team, free it (rebuilding
+    # used_teams) before recording the new one, so the old team isn't left
+    # stranded in used_teams.
+    if existing is not None and existing != body.team:
+        state_mod.unlock_pick(state, body.entry, body.leg)
     state_mod.record_pick(state, body.entry, body.leg, body.team, survived=True)
     state_mod.save_state(state)
-    return {"ok": True, "entry": body.entry, "leg": body.leg, "team": body.team}
+    return {"ok": True, "entry": body.entry, "leg": body.leg, "team": body.team,
+            "replaced": existing if existing != body.team else None}
 
 
 class UnlockReq(BaseModel):

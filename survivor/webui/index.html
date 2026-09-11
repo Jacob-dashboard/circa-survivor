@@ -650,12 +650,14 @@ async function loadPlanner(e, leg){
   try {
     const P = await api(`/api/plan?entry=${e}&leg=${leg}&${qs()}`);
     lastPlan[`${e}|${leg}`] = P;
-    if (P.locked){
-      el.innerHTML = `<div class="banner info">${leg} is locked on <b>${P.locked_team}</b>.</div>
-        <label class="ck"><input type="checkbox" id="unlock-ok"> confirm unlock</label>
-        <div class="actrow"><button class="sub" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">Unlock ${leg}</button></div>`;
-      return;
-    }
+    // When a leg is locked we no longer stop here — the planner still renders
+    // so the pick can be CHANGED in place (pick a different team + confirm =
+    // re-pick). A banner + unlock control ride on top.
+    const lockedHeader = P.locked ? `
+      <div class="banner ok">🔒 <b>${leg}</b> is locked on <b>${P.locked_team}</b>.
+        Pick a different team below and confirm to change it, or unlock to clear it.</div>
+      <label class="ck"><input type="checkbox" id="unlock-ok"> confirm unlock</label>
+      <div class="actrow"><button class="sub" onclick="if($('#unlock-ok').checked) doUnlock('${e}','${leg}')">Unlock ${leg}</button></div>` : "";
     if (!P.alternatives.length){
       el.innerHTML = `<div class="banner info">No teams available for ${leg}.</div>`;
       return;
@@ -672,20 +674,20 @@ async function loadPlanner(e, leg){
     const teamDropdown = `
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;
            padding:12px 14px;background:var(--panel2);border:1px solid var(--line2);border-radius:var(--r-sm)">
-        <label for="teampick-${e}" style="font-weight:600;color:var(--amber)">Pick any team playing ${leg}</label>
+        <label for="teampick-${e}" style="font-weight:600;color:var(--amber)">${P.locked?`Change ${leg}'s pick`:`Pick any team playing ${leg}`}</label>
         <select id="teampick-${e}" style="max-width:100%"
           onchange="if(this.value){runWhatIf('${e}','${leg}',this.value);} this.selectedIndex=0;">
           <option value="">▾ choose a team…</option>
           <optgroup label="Available (${pool.length})">
-            ${pool.map(a=>`<option value="${a.team}">${a.is_rec?"★ ":""}${a.team} — ${pct(a.win_prob)}${a.below_floor?" · below floor":""}</option>`).join("")}
+            ${pool.map(a=>`<option value="${a.team}">${a.is_current?"● ":a.is_rec?"★ ":""}${a.team} — ${pct(a.win_prob)}${a.is_current?" · current pick":a.below_floor?" · below floor":""}</option>`).join("")}
           </optgroup>
-          ${usedTeams.length?`<optgroup label="Already used — not able to select">
+          ${usedTeams.length?`<optgroup label="Used another week — not able to select">
             ${usedTeams.map(a=>`<option value="" disabled>${a.team} ✕ used</option>`).join("")}
           </optgroup>`:""}
         </select>
-        <span class="dim" style="font-size:.72rem">Used teams show greyed and can't be re-picked · every other team that plays ${leg} is selectable, floor or not</span>
+        <span class="dim" style="font-size:.72rem">${P.locked?`● current pick · pick a different team to change it`:`Teams used another week show greyed and can't be re-picked`} · every team that plays ${leg} is selectable, floor or not</span>
       </div>`;
-    el.innerHTML = teamDropdown + `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    el.innerHTML = lockedHeader + teamDropdown + `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <span class="dim">${above.length} team${above.length!==1?"s":""} above your ${Math.round(P.floor*100)}% floor · ${below.length} below${usedTeams.length?` · ${usedTeams.length} already used`:""}</span>
       <label class="ck" style="color:var(--amber);font-weight:600"><input type="checkbox" ${showAll?"checked":""}
         onchange="localStorage.setItem('showall_${e}', this.checked?'1':'0');loadPlanner('${e}','${leg}')">
