@@ -660,16 +660,36 @@ async function loadPlanner(e, leg){
       el.innerHTML = `<div class="banner info">No teams available for ${leg}.</div>`;
       return;
     }
-    const above = P.alternatives.filter(a=>!a.below_floor);
-    const below = P.alternatives.filter(a=>a.below_floor);
+    const pool = P.alternatives.filter(a=>!a.used);       // selectable teams
+    const usedTeams = P.alternatives.filter(a=>a.used);   // already burned by this entry
+    const above = pool.filter(a=>!a.below_floor);
+    const below = pool.filter(a=>a.below_floor);
     const showAll = localStorage.getItem(`showall_${e}`) === "1";
-    const visible = showAll ? P.alternatives : above;
+    const visible = showAll ? pool : above;
     const hasPop = P.alternatives.some(a=>a.pick_pct!=null);
-    el.innerHTML = `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-      <span class="dim">${above.length} team${above.length!==1?"s":""} above your ${Math.round(P.floor*100)}% floor · ${below.length} below</span>
+    // Dropdown of EVERY team playing this week. Teams this entry already used
+    // stay in the list but are disabled ("not able to select") and greyed.
+    const teamDropdown = `
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;
+           padding:12px 14px;background:var(--panel2);border:1px solid var(--line2);border-radius:var(--r-sm)">
+        <label for="teampick-${e}" style="font-weight:600;color:var(--amber)">Pick any team playing ${leg}</label>
+        <select id="teampick-${e}" style="max-width:100%"
+          onchange="if(this.value){runWhatIf('${e}','${leg}',this.value);} this.selectedIndex=0;">
+          <option value="">▾ choose a team…</option>
+          <optgroup label="Available (${pool.length})">
+            ${pool.map(a=>`<option value="${a.team}">${a.is_rec?"★ ":""}${a.team} — ${pct(a.win_prob)}${a.below_floor?" · below floor":""}</option>`).join("")}
+          </optgroup>
+          ${usedTeams.length?`<optgroup label="Already used — not able to select">
+            ${usedTeams.map(a=>`<option value="" disabled>${a.team} ✕ used</option>`).join("")}
+          </optgroup>`:""}
+        </select>
+        <span class="dim" style="font-size:.72rem">Used teams show greyed and can't be re-picked · every other team that plays ${leg} is selectable, floor or not</span>
+      </div>`;
+    el.innerHTML = teamDropdown + `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <span class="dim">${above.length} team${above.length!==1?"s":""} above your ${Math.round(P.floor*100)}% floor · ${below.length} below${usedTeams.length?` · ${usedTeams.length} already used`:""}</span>
       <label class="ck" style="color:var(--amber);font-weight:600"><input type="checkbox" ${showAll?"checked":""}
         onchange="localStorage.setItem('showall_${e}', this.checked?'1':'0');loadPlanner('${e}','${leg}')">
-        show all ${P.alternatives.length} teams — every team playing this week is selectable, floor or not</label></div>
+        show all ${pool.length} teams — every team playing this week is selectable, floor or not</label></div>
     <div style="overflow-x:auto"><table><thead><tr><th>Team</th><th>Game</th><th class="num">Win%</th>${hasPop?'<th class="num">Field%</th>':''}<th class="num">O/U</th>
       <th>Style</th><th>Pool</th><th>Stack</th><th>FV</th><th></th></tr></thead><tbody>` +
       visible.map(a => `<tr class="${a.is_rec?'rec':''} clickable" style="${a.below_floor?'opacity:.5':''}" onclick="runWhatIf('${e}','${leg}','${a.team}')">

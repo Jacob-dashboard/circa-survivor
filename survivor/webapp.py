@@ -114,12 +114,15 @@ def _loaded_legs():
 
 
 def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=None):
-    """Every team available to this entry in this leg, ranked by win prob.
+    """Every team that plays in this leg, ranked by win prob.
 
     Below-floor teams are included and flagged (`below_floor`) rather than
     hidden — the user can pin any team that plays this week; the flag lets
-    the UI dim them and the fit banner warn. top_n=None returns the full
-    slate (the planner's default)."""
+    the UI dim them and the fit banner warn. Teams this entry has already
+    used are ALSO included, flagged `used` — the UI shows them greyed out
+    ("not able to select") instead of dropping them, so the full week slate
+    is always visible. top_n=None returns the full slate (the planner's
+    default)."""
     entry = state["entries"][entry_idx]
     used = set(entry["used_teams"])
     leg_probs = probs.get(leg_id, {})
@@ -127,14 +130,14 @@ def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=None):
         return []
     cands = []
     for team, p in leg_probs.items():
-        if team in used:
-            continue
+        is_used = team in used
         stacks = sorted(o for o in res if o != entry_idx
                         and res.get(o, {}).get(leg_id) == team)
         cands.append({
             "team": team,
             "win_prob": round(p, 4),
             "below_floor": p < floor,
+            "used": is_used,
             "in_tx": team in sched.TXWEEK_POOL,
             "in_xmas": team in sched.XMASWEEK_POOL,
             "stacks_with": stacks,
@@ -142,7 +145,9 @@ def _rank_alternatives(state, res, probs, leg_id, entry_idx, floor, top_n=None):
             "ou": data.WIN_TOTALS.get(team, (None,))[0],
             "fv": round(solver.future_value(team), 2),
         })
-    cands.sort(key=lambda c: -c["win_prob"])
+    # Selectable (unused) teams first by win prob, then used teams at the
+    # bottom so the greyed roster never buries live options.
+    cands.sort(key=lambda c: (c["used"], -c["win_prob"]))
     if top_n is not None:
         top = cands[:top_n]
         if not any(c["is_rec"] for c in top):
@@ -281,7 +286,7 @@ def plan(entry: str, leg: str, horizon: Optional[int] = None, min_prob: Optional
     # Styles are classified among ABOVE-floor teams only — "leans contrarian"
     # on a 25% underdog would be misleading (contrarian fades favorites, it
     # doesn't court elimination). Below-floor teams carry no style.
-    styleable = [a for a in alternatives if not a["below_floor"]]
+    styleable = [a for a in alternatives if not a["below_floor"] and not a["used"]]
     for a in alternatives:
         a["style"], a["style_strong"] = [], []
     if styleable:
