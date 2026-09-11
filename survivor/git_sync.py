@@ -68,9 +68,11 @@ def pull_state():
         pass  # fall back to whatever is on disk
 
 
-def push_state(message="cloud: update season state"):
+def push_state(message="cloud: update season state [skip render]"):
     """Commit + push the state file after a cloud write. No-op locally; never
-    raises. Auto-deploy on Render should be OFF so this doesn't churn deploys."""
+    raises. The "[skip render]" tag tells Render NOT to redeploy on these
+    state commits, so Auto-Deploy can stay ON for code pushes without every
+    pick/elo write bouncing the service."""
     if not enabled():
         return
     try:

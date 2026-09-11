@@ -75,6 +75,27 @@ _DEPS = [Depends(_auth)] if os.environ.get("APP_PASSWORD") else []
 
 app = FastAPI(title="Circa Survivor 2026", dependencies=_DEPS)
 
+# Build marker — bump on every meaningful deploy. Exposed on EVERY response
+# (including the 401 challenge) via the header below, so the live version of
+# any URL can be checked with `curl -I` without the password. This is the
+# quickest way to confirm a deploy actually landed on the public host.
+APP_BUILD = "2026-09-11.3+full-manual-pick-dropdown"
+
+
+@app.middleware("http")
+async def _stamp_build(request, call_next):
+    resp = await call_next(request)
+    resp.headers["X-App-Build"] = APP_BUILD
+    return resp
+
+
+@app.get("/version")
+def version():
+    # Unauthenticated-friendly: the body needs auth on the cloud, but the
+    # X-App-Build header rides on the 401 too, so this always resolves.
+    return {"build": APP_BUILD}
+
+
 _WEBUI = os.path.join(os.path.dirname(__file__), "webui", "index.html")
 
 DIAL_DEFAULTS = dict(horizon=17, min_prob=0.55, holiday_min_prob=0.50,

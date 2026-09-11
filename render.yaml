@@ -5,8 +5,12 @@
 #      dashboard (they are secrets, not committed):
 #        APP_PASSWORD   -> the login password you want
 #        GITHUB_TOKEN   -> a GitHub PAT with contents:write on this repo
-#   3. Turn OFF "Auto-Deploy" for the service so cloud state writes don't
-#      trigger redeploys (they persist via git either way).
+#   3. Auto-Deploy is ON so code pushes go live automatically. Cloud state
+#      writes are made with "[skip render]" in the commit message (see
+#      git_sync.push_state), so they persist via git WITHOUT triggering a
+#      redeploy — you get push-to-deploy for code and no churn from picks.
+#      NOTE: flipping this value only takes effect when the blueprint is
+#      re-synced (or toggle Auto-Deploy in the dashboard once).
 services:
   - type: web
     name: circa-survivor
@@ -14,7 +18,7 @@ services:
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn survivor.webapp:app --host 0.0.0.0 --port $PORT"
-    autoDeploy: false
+    autoDeploy: true
     envVars:
       - key: APP_USER
         value: circa
