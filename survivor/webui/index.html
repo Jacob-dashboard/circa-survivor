@@ -793,9 +793,17 @@ async function runWhatIf(e, leg, team){
   const el = $("#whatif"); el.innerHTML = `<p class="dim">re-solving season around ${team}…</p>`;
   try {
     const W = await api("/api/whatif", {entry:e, leg, team, ...dials});
+    // Non-Optimal only means the SEASON solver couldn't route the rest of the
+    // schedule around this pick — it never blocks the pick itself. You keep
+    // full control: warn, but still offer Confirm + Lock for ANY team.
     if (W.status!=="Optimal"){
-      el.innerHTML = `<div class="banner err">Solver: ${W.status}. This pick likely breaks a hard constraint
-        (e.g. exhausts a holiday pool). Strong signal NOT to take it.</div>`; return; }
+      el.innerHTML = `<div class="banner err">⚠ Season solver: <b>${W.status}</b> with ${team} pinned for ${leg}.
+        The model can't build a full no-reuse season plan around this pick (it may exhaust a holiday pool or collide
+        with your other entry). That's a caution, not a block — <b>you can still pick ${team}</b>.</div>
+        <label class="ck"><input type="checkbox" onchange="$('#pin-btn').disabled=!this.checked"> Confirm ${team} anyway</label>
+        <div class="actrow"><button class="go" id="pin-btn" disabled onclick="doLock('${e}','${leg}','${team}')">
+          ${leg===D.current_leg?`Lock ${team}`:`Pin ${team} · ${leg}`}</button></div>`;
+      return; }
     const d = (W.p_choice!=null&&W.p_model!=null)?W.p_choice-W.p_model:null;
     el.innerHTML = strategyFit(e, leg, team) + `
       <div class="metricrow">
