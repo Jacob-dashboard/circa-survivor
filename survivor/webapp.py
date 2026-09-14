@@ -79,7 +79,7 @@ app = FastAPI(title="Circa Survivor 2026", dependencies=_DEPS)
 # (including the 401 challenge) via the header below, so the live version of
 # any URL can be checked with `curl -I` without the password. This is the
 # quickest way to confirm a deploy actually landed on the public host.
-APP_BUILD = "2026-09-14.1+persist-fix"
+APP_BUILD = "2026-09-14.2+persist-fix"
 
 
 @app.middleware("http")
