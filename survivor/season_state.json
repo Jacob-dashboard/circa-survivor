@@ -1,7 +1,37 @@
 {
   "current_leg": "W1",
   "elo_adjustments": {
-    "KC": 0.0
+    "KC": 0.0,
+    "SEA": 10.87,
+    "NE": -10.87,
+    "LAR": -33.05,
+    "SF": 33.05,
+    "CIN": 14.66,
+    "TB": -14.66,
+    "DET": 3.98,
+    "NO": -3.98,
+    "TEN": -31.15,
+    "NYJ": 31.15,
+    "IND": -24.22,
+    "BAL": 24.22,
+    "PIT": 15.16,
+    "ATL": -15.16,
+    "CAR": -29.19,
+    "CHI": 29.19,
+    "JAX": 18.92,
+    "CLE": -18.92,
+    "HOU": -18.34,
+    "BUF": 18.34,
+    "LV": 20.66,
+    "MIA": -20.66,
+    "MIN": 29.79,
+    "GB": -29.79,
+    "PHI": 6.91,
+    "WAS": -6.91,
+    "LAC": -35.64,
+    "ARI": 35.64,
+    "NYG": 22.5,
+    "DAL": -22.5
   },
   "leg_overrides": {
     "W1": {
@@ -93,10 +123,10 @@
     "0": {
       "alive": true,
       "used_teams": [
-        "LV"
+        "TEN"
       ],
       "picks": {
-        "W1": "LV"
+        "W1": "TEN"
       },
       "bucket": null,
       "leg_buckets": {
@@ -110,10 +140,10 @@
     "1": {
       "alive": true,
       "used_teams": [
-        "TEN"
+        "PIT"
       ],
       "picks": {
-        "W1": "TEN"
+        "W1": "PIT"
       },
       "bucket": "contrarian",
       "leg_buckets": {}
@@ -193,5 +223,25 @@
       "MIA": 0.002,
       "LAC": 0.002
     }
+  },
+  "elo_weeks_done": [],
+  "elo_processed": {
+    "w1": [
+      "NE|SEA",
+      "SF|LAR",
+      "TB|CIN",
+      "NO|DET",
+      "NYJ|TEN",
+      "BAL|IND",
+      "ATL|PIT",
+      "CHI|CAR",
+      "CLE|JAX",
+      "BUF|HOU",
+      "MIA|LV",
+      "GB|MIN",
+      "WAS|PHI",
+      "ARI|LAC",
+      "DAL|NYG"
+    ]
   }
 }
